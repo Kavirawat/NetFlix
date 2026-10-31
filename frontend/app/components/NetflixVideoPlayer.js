@@ -93,6 +93,7 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
 
   const [resolvedMovie, setResolvedMovie] = useState(() => resolveVideoMeta(movie));
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
 
@@ -162,16 +163,62 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     controlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
       setShowSettingsMenu(false);
-    }, 4000);
+    }, 4500);
+  };
+
+  const handleToggleControls = (e) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    if (!showControls) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+        setShowSettingsMenu(false);
+      }, 4500);
+    } else {
+      setShowControls(false);
+      setShowSettingsMenu(false);
+    }
   };
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
+    const isCurrentlyFs = !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement ||
+      isFullscreen
+    );
+
+    if (!isCurrentlyFs) {
+      if (containerRef.current) {
+        if (containerRef.current.requestFullscreen) {
+          containerRef.current.requestFullscreen().catch(() => {});
+        } else if (containerRef.current.webkitRequestFullscreen) {
+          containerRef.current.webkitRequestFullscreen();
+        }
+      }
+
+      if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen().catch(() => {});
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+
+      if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+        } catch (e) {}
+      }
+
       setIsFullscreen(false);
     }
   };
@@ -386,8 +433,47 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+
+    const checkOrientation = () => {
+      if (typeof window !== 'undefined') {
+        const portrait = window.innerHeight > window.innerWidth && window.innerWidth <= 820;
+        setIsPortrait(portrait);
+      }
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    const handleFsChange = () => {
+      const active = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+      setIsFullscreen(active);
+      if (!active && typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+        } catch (e) {}
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+
     return () => {
       document.body.style.overflow = '';
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+      if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+        } catch (e) {}
+      }
     };
   }, []);
 
@@ -454,7 +540,7 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
 
   return (
     <div
-      className="netflix-player-container"
+      className={`netflix-player-container ${isFullscreen && isPortrait ? 'mobile-landscape-fullscreen' : ''}`}
       ref={containerRef}
       onMouseMove={handleUserActivity}
       onClick={handleUserActivity}
@@ -464,7 +550,13 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
         <button
           type="button"
           className="player-back-btn"
-          onClick={onClose}
+          onClick={(e) => {
+            if (e && e.stopPropagation) e.stopPropagation();
+            if (isFullscreen) {
+              toggleFullscreen();
+            }
+            onClose();
+          }}
           aria-label="Back to Browse"
           title="Back to Browse (Esc)"
         >
@@ -494,6 +586,12 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
           className="youtube-player-frame"
         ></iframe>
       </div>
+
+      <div
+        className="player-touch-interceptor"
+        onClick={handleToggleControls}
+        onTouchEnd={handleToggleControls}
+      />
 
       <div className={`player-custom-controls-dock ${showControls ? 'visible' : ''}`}>
         

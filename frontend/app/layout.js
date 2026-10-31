@@ -8,6 +8,12 @@ const montserrat = Montserrat({
   variable: '--font-montserrat',
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata = {
   title: 'Music India – Watch TV Shows Online, Watch Movies & Music Online',
   description: 'Music Streaming Platform built with Next.js and Express backend',

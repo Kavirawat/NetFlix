@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/userModel');
 
 const isValidEmail = (email) => {
@@ -23,6 +24,13 @@ const generateToken = (user) => {
 
 const register = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection is not ready. In MongoDB Atlas, go to Network Access and add 0.0.0.0/0 (Allow Access from Anywhere).',
+      });
+    }
+
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -83,13 +91,20 @@ const register = async (req, res) => {
     console.error('Register error:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Database error while creating account.',
+      message: error.message || 'Database error while creating account.',
     });
   }
 };
 
 const login = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection is not ready. In MongoDB Atlas, go to Network Access and add 0.0.0.0/0 (Allow Access from Anywhere).',
+      });
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -135,7 +150,7 @@ const login = async (req, res) => {
     console.error('Login error:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Database error during login.',
+      message: error.message || 'Database error during login.',
     });
   }
 };

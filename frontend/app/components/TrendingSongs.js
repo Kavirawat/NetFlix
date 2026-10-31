@@ -23,13 +23,15 @@ export default function TrendingSongs({
 
   const scrollLeft = () => {
     if (containerRef.current) {
-      containerRef.current.scrollBy({ left: -450, behavior: 'smooth' });
+      const amount = containerRef.current.clientWidth || 360;
+      containerRef.current.scrollBy({ left: -amount, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (containerRef.current) {
-      containerRef.current.scrollBy({ left: 450, behavior: 'smooth' });
+      const amount = containerRef.current.clientWidth || 360;
+      containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
 
