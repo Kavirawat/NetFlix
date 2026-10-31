@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-// Verified mapping ensuring EVERY movie has its genuine, accurate video trailer/stream
 const VERIFIED_TRAILERS = {
   animal: { id: '8FkLRUJj-o0', title: 'Animal', year: '2023', match: '99% Match', age: 'A (18+)', rating: '8.4', duration: '3h 21m' },
   leo: { id: 'Po3jStA673E', title: 'Leo', year: '2023', match: '97% Match', age: 'U/A 16+', rating: '7.9', duration: '2h 44m' },
@@ -37,7 +36,6 @@ function resolveVideoMeta(item) {
     };
   }
 
-  // If item already contains a verified trailerYoutubeId
   if (item.trailerYoutubeId) {
     return {
       id: item.trailerYoutubeId,
@@ -98,14 +96,13 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
 
-  // Playback Control States
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(210); // Default estimate in seconds
+  const [duration, setDuration] = useState(210);
   const [volume, setVolume] = useState(100);
   const [isMuted, setIsMuted] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [settingsView, setSettingsView] = useState('main'); // 'main' | 'quality' | 'speed' | 'subtitles' | 'timer'
+  const [settingsView, setSettingsView] = useState('main');
   const [ambientMode, setAmbientMode] = useState(true);
   const [annotations, setAnnotations] = useState(true);
   const [subtitlesLanguage, setSubtitlesLanguage] = useState('Off');
@@ -124,7 +121,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     }, 2800);
   };
 
-  // Safe YouTube iframe postMessage sender
   const sendCommand = useCallback((func, args = []) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
@@ -138,7 +134,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     }
   }, []);
 
-  // Fetch real metadata if needed
   useEffect(() => {
     const initialMeta = resolveVideoMeta(movie);
     setResolvedMovie(initialMeta);
@@ -160,7 +155,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     }
   }, [movie]);
 
-  // Keep controls visible when interacting
   const handleUserActivity = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -170,7 +164,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     }, 4000);
   };
 
-  // Toggle Fullscreen
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
@@ -182,7 +175,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     }
   };
 
-  // Toggle Play / Pause
   const togglePlayPause = () => {
     if (isPlaying) {
       sendCommand('pauseVideo');
@@ -194,7 +186,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Rewind / Forward 10 seconds (Works properly)
   const seekOffset = (offsetSeconds) => {
     setCurrentTime((prev) => {
       const targetTime = Math.max(0, Math.min(duration || 300, prev + offsetSeconds));
@@ -204,7 +195,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Mute / Unmute
   const toggleMute = () => {
     if (isMuted) {
       sendCommand('unMute');
@@ -217,7 +207,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Volume Slider Change
   const handleVolumeChange = (e) => {
     const newVol = parseInt(e.target.value, 10);
     setVolume(newVol);
@@ -232,7 +221,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Playback Speed Change
   const handleSpeedChange = (speed) => {
     setPlaybackSpeed(speed);
     sendCommand('setPlaybackRate', [speed]);
@@ -241,7 +229,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Playback Quality Change (YouTube Resolutions: 144p to 4K & Auto)
   const handleQualityChange = (q) => {
     setVideoQuality(q);
     const ytQualityMap = {
@@ -264,7 +251,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Subtitles Change
   const handleSubtitlesChange = (lang) => {
     setSubtitlesLanguage(lang);
     if (lang === 'Off') {
@@ -286,7 +272,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Sleep Timer Change
   const handleTimerChange = (val) => {
     setSleepTimer(val);
     setSettingsView('main');
@@ -294,7 +279,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Toggle CC (Subtitles)
   const toggleCC = () => {
     const nextState = !ccActive;
     setCcActive(nextState);
@@ -314,7 +298,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Interactive scrubber click
   const handleScrubberClick = (e) => {
     if (!scrubberRailRef.current) return;
     const rect = scrubberRailRef.current.getBoundingClientRect();
@@ -326,7 +309,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     handleUserActivity();
   };
 
-  // Listen to YouTube State Updates via PostMessage
   useEffect(() => {
     const handleMessage = (event) => {
       try {
@@ -346,7 +328,7 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
           }
         }
       } catch (err) {
-        // Not a JSON message, ignore safely
+
       }
     };
 
@@ -354,7 +336,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Periodic Local Progress Ticker
   useEffect(() => {
     if (!isPlaying) return;
     const interval = setInterval(() => {
@@ -366,7 +347,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     return () => clearInterval(interval);
   }, [isPlaying, duration]);
 
-  // Keyboard navigation: Escape closes, Space plays/pauses, Left/Right seeks 10s, F toggles fullscreen
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -403,7 +383,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     };
   }, [onClose, isPlaying, isMuted]);
 
-  // Lock body scroll while player is active
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -418,7 +397,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     const time = currentTime;
     const isHi = subtitlesLanguage.toLowerCase().includes('hindi');
 
-    // Tailored synced captions for top songs
     if (title.includes('tauba')) {
       if (time < 12) return isHi ? '♪ [ताल और संगीत शुरू] ♪' : '♪ [Vibrant Beats & Synth Intro] ♪';
       if (time < 32) return isHi ? 'हो दिल मेरा दीवाना हुआ, तौबा तौबा!' : 'Yeh dil mera deewaana hua, Tauba Tauba!';
@@ -457,7 +435,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
       return isHi ? '♪ [शाहरुख खान - लुट पुट गया] ♪' : '♪ [Shah Rukh Khan - Lutt Putt Gaya Groove] ♪';
     }
 
-    // Dynamic rhythm captions for any movie or song
     const phase = Math.floor(time / 10) % 5;
     if (phase === 0) return isHi ? `♪ [संगीत और संवाद: ${resolvedMovie.title}] ♪` : `♪ [Audio Track: ${resolvedMovie.title}] ♪`;
     if (phase === 1) return isHi ? '♪ [स्टूडियो वोकल्स और इंस्ट्रूमेंट्स] ♪' : '♪ [Studio Vocals & Instruments] ♪';
@@ -481,7 +458,7 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
       onMouseMove={handleUserActivity}
       onClick={handleUserActivity}
     >
-      {/* Top Header Overlay: Back button, Movie Title, Quality Badges */}
+      
       <div className={`player-top-overlay ${showControls ? 'visible' : ''}`}>
         <button
           type="button"
@@ -505,7 +482,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
         </div>
       </div>
 
-      {/* Real Full Screen Movie Video Player (Embedded with Zero Delay via YouTube-NoCookie) */}
       <div className="player-youtube-wrap">
         <iframe
           ref={iframeRef}
@@ -518,9 +494,8 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
         ></iframe>
       </div>
 
-      {/* Bottom Interactive Netflix Control Bar Overlay */}
       <div className={`player-custom-controls-dock ${showControls ? 'visible' : ''}`}>
-        {/* Scrubber Timeline Bar */}
+        
         <div
           className="player-scrubber-rail-wrap"
           ref={scrubberRailRef}
@@ -533,11 +508,10 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
           </div>
         </div>
 
-        {/* Control Buttons Row */}
         <div className="player-controls-row">
-          {/* LEFT BOTTOM CONTROLS: Play, Rewind 10s, Forward 10s, Sound, Time */}
+          
           <div className="controls-left-group">
-            {/* Play / Pause Button */}
+            
             <button
               type="button"
               className="player-action-btn play-pause-btn"
@@ -547,7 +521,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
             </button>
 
-            {/* Rewind 10 Seconds */}
             <button
               type="button"
               className="player-action-btn skip-btn"
@@ -558,7 +531,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               <span className="skip-label">10</span>
             </button>
 
-            {/* Forward 10 Seconds */}
             <button
               type="button"
               className="player-action-btn skip-btn"
@@ -569,7 +541,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               <span className="skip-label">10</span>
             </button>
 
-            {/* Sound / Volume Control */}
             <div className="player-volume-group">
               <button
                 type="button"
@@ -599,7 +570,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               />
             </div>
 
-            {/* Elapsed Time / Total Duration */}
             <div className="player-time-indicator">
               <span className="time-current">{formatTime(currentTime)}</span>
               <span className="time-divider">/</span>
@@ -607,9 +577,8 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
             </div>
           </div>
 
-          {/* RIGHT BOTTOM CONTROLS: YouTube Layout (CC, Settings Gear, Miniplayer, Full Screen) */}
           <div className="controls-right-group">
-            {/* CC Subtitles Button */}
+            
             <button
               type="button"
               className={`player-action-btn yt-dock-btn cc-dock-btn ${ccActive ? 'active-cc' : ''}`}
@@ -620,7 +589,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               <span className="cc-box">CC</span>
             </button>
 
-            {/* Settings Gear with Exact YouTube Menu */}
             <div className="player-settings-wrapper">
               <button
                 type="button"
@@ -634,12 +602,11 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                 <i className="fa-solid fa-gear"></i>
               </button>
 
-              {/* Exact YouTube Settings Dropdown Popover */}
               {showSettingsMenu && (
                 <div className="player-settings-popover yt-settings-menu">
                   {settingsView === 'main' && (
                     <div className="yt-menu-main">
-                      {/* 1. Ambient mode */}
+                      
                       <div
                         className="yt-menu-row"
                         onClick={(e) => {
@@ -661,7 +628,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                         </div>
                       </div>
 
-                      {/* 2. Annotations */}
                       <div
                         className="yt-menu-row"
                         onClick={(e) => {
@@ -682,7 +648,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                         </div>
                       </div>
 
-                      {/* 3. Subtitles/CC */}
                       <div className="yt-menu-row" onClick={() => setSettingsView('subtitles')}>
                         <div className="yt-row-left">
                           <svg className="yt-menu-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
@@ -696,7 +661,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                         </div>
                       </div>
 
-                      {/* 4. Sleep timer */}
                       <div className="yt-menu-row" onClick={() => setSettingsView('timer')}>
                         <div className="yt-row-left">
                           <svg className="yt-menu-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
@@ -710,7 +674,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                         </div>
                       </div>
 
-                      {/* 5. Playback speed */}
                       <div className="yt-menu-row" onClick={() => setSettingsView('speed')}>
                         <div className="yt-row-left">
                           <svg className="yt-menu-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
@@ -726,7 +689,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                         </div>
                       </div>
 
-                      {/* 6. Quality */}
                       <div className="yt-menu-row" onClick={() => setSettingsView('quality')}>
                         <div className="yt-row-left">
                           <svg className="yt-menu-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
@@ -745,7 +707,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                     </div>
                   )}
 
-                  {/* Submenu: Quality */}
                   {settingsView === 'quality' && (
                     <div className="yt-submenu-container">
                       <div className="yt-submenu-header" onClick={() => setSettingsView('main')}>
@@ -783,7 +744,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                     </div>
                   )}
 
-                  {/* Submenu: Playback speed */}
                   {settingsView === 'speed' && (
                     <div className="yt-submenu-container">
                       <div className="yt-submenu-header" onClick={() => setSettingsView('main')}>
@@ -812,7 +772,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                     </div>
                   )}
 
-                  {/* Submenu: Subtitles/CC */}
                   {settingsView === 'subtitles' && (
                     <div className="yt-submenu-container">
                       <div className="yt-submenu-header" onClick={() => setSettingsView('main')}>
@@ -840,7 +799,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
                     </div>
                   )}
 
-                  {/* Submenu: Sleep timer */}
                   {settingsView === 'timer' && (
                     <div className="yt-submenu-container">
                       <div className="yt-submenu-header" onClick={() => setSettingsView('main')}>
@@ -879,7 +837,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               )}
             </div>
 
-            {/* Miniplayer (Picture in Picture) Button */}
             <button
               type="button"
               className="player-action-btn yt-dock-btn"
@@ -895,7 +852,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
               </svg>
             </button>
 
-            {/* Full Screen Button */}
             <button
               type="button"
               className="player-action-btn yt-dock-btn fullscreen-btn"
@@ -908,7 +864,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
         </div>
       </div>
 
-      {/* Real-time Subtitles / CC Visual Overlay */}
       {ccActive && subtitlesLanguage !== 'Off' && (
         <div className="player-cc-subtitle-overlay">
           <div className="player-cc-subtitle-box">
@@ -917,7 +872,6 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
         </div>
       )}
 
-      {/* Floating CC Feedback Notification Toast */}
       {ccToast && (
         <div className="player-cc-toast">
           <span className="cc-toast-pill">{ccToast}</span>

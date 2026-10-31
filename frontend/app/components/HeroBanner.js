@@ -80,7 +80,6 @@ export default function HeroBanner({ language = 'en', onPlayMovie }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const t = translations[language] || translations.en;
 
-  // Auto-rotate banner every 6.5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % FEATURED_BANNERS.length);
@@ -96,7 +95,7 @@ export default function HeroBanner({ language = 'en', onPlayMovie }) {
 
   return (
     <div className="netflix-browse-banner">
-      {/* Background with Vignette Overlays */}
+      
       <div
         className="banner-backdrop-img"
         style={{ backgroundImage: `url(${banner.backdropUrl})` }}
@@ -105,7 +104,6 @@ export default function HeroBanner({ language = 'en', onPlayMovie }) {
         <div className="banner-vignette-bottom"></div>
       </div>
 
-      {/* Banner Content (Title, Badges, Buttons) */}
       <div className="banner-content-container">
         <div className="banner-badge-row">
           <span className="banner-netflix-tag">{banner.type}</span>
@@ -145,9 +143,8 @@ export default function HeroBanner({ language = 'en', onPlayMovie }) {
         </div>
       </div>
 
-      {/* Right-Hand Controls: Indicators */}
       <div className="banner-right-controls">
-        {/* Carousel Dots */}
+        
         <div className="banner-dots">
           {FEATURED_BANNERS.map((_, idx) => (
             <button

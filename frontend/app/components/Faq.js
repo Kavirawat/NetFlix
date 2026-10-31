@@ -96,7 +96,6 @@ export default function Faq({ onOpenAuth, user, language = 'en' }) {
         })}
       </div>
 
-      {/* When user is NOT logged in, show bottom CTA. When logged in, hide completely as requested */}
       {!user && (
         <div className="faq-register">
           <h4>{t.faqCta}</h4>

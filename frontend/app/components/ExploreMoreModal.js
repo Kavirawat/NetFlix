@@ -23,7 +23,6 @@ export default function ExploreMoreModal({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
-  // A to Z Live Search via YouTube Data API v3
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) {
@@ -48,12 +47,10 @@ export default function ExploreMoreModal({
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  // Compute uppercase first letter of user's name
   const userInitial = user
     ? (user.name || user.email || 'U').trim().charAt(0).toUpperCase()
     : 'U';
 
-  // Clicking Netflix logo directly closes modal and redirects to main dashboard
   const handleLogoClick = () => {
     onClose();
     if (typeof window !== 'undefined') {
@@ -61,7 +58,6 @@ export default function ExploreMoreModal({
     }
   };
 
-  // Lock body scroll and support Escape key when modal is open
   useEffect(() => {
     if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
@@ -80,7 +76,6 @@ export default function ExploreMoreModal({
     };
   }, [isOpen, onClose]);
 
-  // Close user menu on outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -91,7 +86,6 @@ export default function ExploreMoreModal({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // Combined rich library of songs and movies with strict deduplication
   const allMediaItems = useMemo(() => {
     const seenPosters = new Set();
     const seenYoutubeIds = new Set();
@@ -103,7 +97,6 @@ export default function ExploreMoreModal({
       const ytId = item.trailerYoutubeId;
       const poster = item.poster;
 
-      // Skip duplicate posters, duplicate youtube ids, or duplicate titles
       if (ytId && seenYoutubeIds.has(ytId)) return;
       if (poster && seenPosters.has(poster)) return;
       if (normTitle && seenTitles.has(normTitle)) return;
@@ -120,10 +113,8 @@ export default function ExploreMoreModal({
       });
     };
 
-    // Add unique songs first
     TRENDING_SONGS.forEach(addItem);
 
-    // Add unique movies & series
     COMPREHENSIVE_CATALOG.forEach(addItem);
 
     return uniqueList;
@@ -148,7 +139,6 @@ export default function ExploreMoreModal({
           (i.album || '').toLowerCase().includes(q)
       );
 
-      // Merge live A to Z YouTube Data API v3 search results
       const seenIds = new Set(localMatches.map((i) => i.id || i.trailerYoutubeId));
       const seenTitles = new Set(localMatches.map((i) => (i.title || '').toLowerCase().trim()));
 
@@ -173,7 +163,7 @@ export default function ExploreMoreModal({
       onPlayMovie && onPlayMovie(filteredItems[0]);
       onClose();
     } else {
-      // Dynamic fallback allows playing ANY song or movie A to Z via online stream
+
       onPlayMovie &&
         onPlayMovie({
           searchQuery: q,
@@ -200,10 +190,10 @@ export default function ExploreMoreModal({
   return (
     <div className="youtube-explore-modal-backdrop" onClick={onClose}>
       <div className="youtube-explore-container" onClick={(e) => e.stopPropagation()}>
-        {/* Top Navbar: Dashboard-Identical Navbar */}
+        
         <div className="modal-navbar-wrapper">
           <div className="nav modal-nav">
-            {/* Logo: Clicking redirects directly to main dashboard */}
+            
             <div
               className="logo"
               onClick={handleLogoClick}
@@ -213,7 +203,6 @@ export default function ExploreMoreModal({
               <img src="/custom-logo.png" alt="Music logo" />
             </div>
 
-            {/* Dashboard-Style Search Bar with red circular button */}
             <div className="nav-search-container modal-nav-search">
               <form
                 className={`nav-search-box ${isSearchFocused || searchQuery.trim() ? 'focused' : ''}`}
@@ -256,9 +245,8 @@ export default function ExploreMoreModal({
               </form>
             </div>
 
-            {/* Right Controls: Language Selector & Circular User Profile Avatar (Close button removed) */}
             <div className="nav-item modal-nav-right">
-              {/* Language Selector */}
+              
               <div className="nav-language-wrap">
                 <select
                   value={language}
@@ -273,7 +261,6 @@ export default function ExploreMoreModal({
                 </select>
               </div>
 
-              {/* User Profile Avatar (Circular) */}
               {user ? (
                 <div className="user-profile-menu-container" ref={userMenuRef}>
                   <button
@@ -348,7 +335,6 @@ export default function ExploreMoreModal({
           </div>
         </div>
 
-        {/* Filter Chips Bar (Trending Songs text title removed as requested) */}
         <div className="explore-chips-bar">
           <div className="yt-filter-chips-row">
             {filterChips.map((chip) => (
@@ -364,7 +350,6 @@ export default function ExploreMoreModal({
           </div>
         </div>
 
-        {/* A to Z Live Search Stream Action Banner */}
         {searchQuery.trim() && (
           <div
             className="search-stream-action-banner"
@@ -404,7 +389,6 @@ export default function ExploreMoreModal({
           </div>
         )}
 
-        {/* Video Grid */}
         <div className="yt-video-grid-scroll">
           <div className="yt-video-grid">
             {filteredItems.map((item) => (
@@ -417,7 +401,7 @@ export default function ExploreMoreModal({
                 }}
                 title={`Click to play ${item.title}`}
               >
-                {/* Thumbnail Frame */}
+                
                 <div className="yt-thumb-wrap">
                   <img
                     src={item.poster}
@@ -428,11 +412,11 @@ export default function ExploreMoreModal({
                       e.target.src = '/logo1.jpg';
                     }}
                   />
-                  {/* Duration Pill */}
+                  
                   <span className="yt-duration-pill">
                     {item.duration || '3:45'}
                   </span>
-                  {/* Hover Play Button */}
+                  
                   <div className="yt-hover-play">
                     <div className="yt-hover-icon">
                       <i className="fa-solid fa-play"></i>
@@ -440,7 +424,6 @@ export default function ExploreMoreModal({
                   </div>
                 </div>
 
-                {/* Video Info Section */}
                 <div className="yt-details-wrap">
                   <div className="yt-channel-avatar">
                     <i

@@ -19,7 +19,6 @@ export default function TrendingSongs({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const t = translations[language] || translations.en;
 
-  // Show only 6 initial songs in the horizontal slider as requested by the user
   const initialSongs = songs.slice(0, 6);
 
   const scrollLeft = () => {
@@ -66,7 +65,7 @@ export default function TrendingSongs({
                 title={`${song.title} - ${song.artist} — Click to Play`}
                 onClick={() => onPlayMovie && onPlayMovie(song)}
               >
-                {/* Song Thumbnail Frame */}
+                
                 <div className="song-thumb-frame">
                   <img
                     src={song.poster}
@@ -78,7 +77,6 @@ export default function TrendingSongs({
                     }}
                   />
 
-                  {/* Play Hover Overlay */}
                   <div className="card-play-hover-overlay">
                     <div className="card-play-icon-circle">
                       <i className="fa-solid fa-play"></i>
@@ -86,7 +84,6 @@ export default function TrendingSongs({
                   </div>
                 </div>
 
-                {/* Song Meta Information */}
                 <div className="song-card-info">
                   <h3 className="song-card-title">{song.title}</h3>
                   <p className="song-card-artist">{song.artist}</p>
@@ -98,7 +95,6 @@ export default function TrendingSongs({
               </div>
             ))}
 
-            {/* 7th Card: "Explore More" Card (Opens YouTube-like full collection) */}
             <div
               className="song-card song-more-card"
               onClick={() => setIsModalOpen(true)}
@@ -127,7 +123,6 @@ export default function TrendingSongs({
         </div>
       </section>
 
-      {/* YouTube-Style Rich Media Modal */}
       <ExploreMoreModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

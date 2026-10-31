@@ -62,7 +62,7 @@ export default function SettingsModal({ isOpen, onClose, user, language, onLangu
         )}
 
         <div className="settings-body">
-          {/* Account Overview */}
+          
           <div className="settings-group">
             <label className="settings-label">{t.accountEmail}</label>
             <div className="settings-user-info">
@@ -70,7 +70,6 @@ export default function SettingsModal({ isOpen, onClose, user, language, onLangu
             </div>
           </div>
 
-          {/* Streaming Quality */}
           <div className="settings-group">
             <label className="settings-label">
               <i className="fa-solid fa-film"></i> {t.streamingQuality}
@@ -113,7 +112,6 @@ export default function SettingsModal({ isOpen, onClose, user, language, onLangu
             </div>
           </div>
 
-          {/* Language Selection */}
           <div className="settings-group">
             <label className="settings-label">
               <i className="fa-solid fa-globe"></i> {t.languagePref}

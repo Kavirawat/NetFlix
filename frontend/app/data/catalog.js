@@ -1,5 +1,5 @@
 export const COMPREHENSIVE_CATALOG = [
-  // A
+
   {
     id: 'animal-movie',
     title: 'Animal',
@@ -31,7 +31,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'IN5TD4VRcSM',
   },
 
-  // B
   {
     id: 'bad-newz-movie',
     title: 'Bad Newz',
@@ -83,7 +82,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'HhesaQXLuRY',
   },
 
-  // C
   {
     id: 'crew-movie',
     title: 'Crew',
@@ -95,7 +93,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: '3uvfq4Cu8R8',
   },
 
-  // D
   {
     id: 'dunki-movie',
     title: 'Dunki',
@@ -127,7 +124,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'rrwycJ08PSA',
   },
 
-  // E
   {
     id: 'extraction-2',
     title: 'Extraction 2',
@@ -139,7 +135,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'Y274jZs5s7s',
   },
 
-  // F
   {
     id: 'fighter-movie',
     title: 'Fighter',
@@ -151,7 +146,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: '6amIq_mP4xM',
   },
 
-  // G
   {
     id: 'gangubai-kathiawadi',
     title: 'Gangubai Kathiawadi',
@@ -173,7 +167,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'wUn05hdkhjM',
   },
 
-  // H
   {
     id: 'heeramandi-series',
     title: 'Heeramandi: The Diamond Bazaar',
@@ -185,7 +178,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'WvzZYynDkwA',
   },
 
-  // J
   {
     id: 'jawan-movie',
     title: 'Jawan',
@@ -207,7 +199,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'GHX6yT9Lxfo',
   },
 
-  // K
   {
     id: 'kalki-2898-ad',
     title: 'Kalki 2898 AD',
@@ -249,7 +240,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: '8mrVmf239GU',
   },
 
-  // L
   {
     id: 'leo-movie',
     title: 'Leo',
@@ -281,7 +271,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'X4bF_quwNtw',
   },
 
-  // M
   {
     id: 'mission-raniganj-movie',
     title: 'Mission Raniganj',
@@ -303,7 +292,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: '_InqQJRqGW4',
   },
 
-  // N
   {
     id: 'narcos-series',
     title: 'Narcos',
@@ -315,7 +303,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'xl8zdCY-abw',
   },
 
-  // O
   {
     id: 'omg-2-movie',
     title: 'OMG 2',
@@ -327,7 +314,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'Y6ZKXqM7HNQ',
   },
 
-  // P
   {
     id: 'pathaan-movie',
     title: 'Pathaan',
@@ -349,7 +335,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: '1kVK0MZlbI4',
   },
 
-  // R
   {
     id: 'rrr-movie',
     title: 'RRR',
@@ -371,7 +356,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'iD3TZ_Xxc14',
   },
 
-  // S
   {
     id: 'salaar-movie',
     title: 'Salaar: Part 1 – Ceasefire',
@@ -423,7 +407,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'b9EkMc79ZSU',
   },
 
-  // T
   {
     id: '12th-fail-movie',
     title: '12th Fail',
@@ -435,7 +418,6 @@ export const COMPREHENSIVE_CATALOG = [
     trailerYoutubeId: 'KjbtuqENvVE',
   },
 
-  // W
   {
     id: 'wednesday-series',
     title: 'Wednesday',

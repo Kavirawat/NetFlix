@@ -27,12 +27,10 @@ export default function Hero({ onOpenAuth, user, onPlayMovie, language = 'en' })
     }
   };
 
-  // If user is logged in, show the proper dynamic Netflix Browse Banner
   if (user) {
     return <HeroBanner language={language} onPlayMovie={onPlayMovie} />;
   }
 
-  // When logged out, show the authentic Netflix India Landing Hero
   return (
     <div className="netflix-hero-section">
       <div className="netflix-hero-overlay"></div>

@@ -174,7 +174,6 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
   const [isPaused, setIsPaused] = useState(false);
   const t = translations[language] || translations.en;
 
-  // Fetch real trending movie metadata from backend API
   useEffect(() => {
     fetch('http://localhost:5000/api/movies/trending')
       .then((res) => res.json())
@@ -188,7 +187,6 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
       });
   }, []);
 
-  // Automatic one-by-one cycling every 3.5 seconds
   useEffect(() => {
     if (isPaused || trendingItems.length === 0) return;
 
@@ -199,7 +197,6 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
     return () => clearInterval(timer);
   }, [isPaused, trendingItems.length]);
 
-  // Smoothly center the active card horizontally ONLY without hijacking window scroll
   useEffect(() => {
     const card = cardRefs.current[activeIndex];
     const container = containerRef.current;
@@ -221,12 +218,11 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Clean Netflix India Section Header */}
+      
       <div className="trending-header-bar">
         <h2 className="section-title">{t.trendingMovies}</h2>
       </div>
 
-      {/* Auto-Rotating Cards Carousel */}
       <div className="trending-wrapper">
         <div className="cards-container" ref={containerRef}>
           {trendingItems.map((item, idx) => {
@@ -242,7 +238,7 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
                   onPlayMovie && onPlayMovie(item);
                 }}
               >
-                {/* Massive Rank Number Overlay */}
+                
                 <div className="card-rank-wrap">
                   <img
                     src={item.numImg}
@@ -252,7 +248,6 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
                   />
                 </div>
 
-                {/* Movie Poster Image with Hover Play Overlay */}
                 <div className="card-poster-frame">
                   <img
                     src={item.poster}

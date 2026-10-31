@@ -24,7 +24,6 @@ export default function Home() {
   const [pendingPlayMovie, setPendingPlayMovie] = useState(null);
   const [language, setLanguage] = useState('en');
 
-  // Load language preference from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLang = localStorage.getItem('netflix_language');
@@ -42,7 +41,6 @@ export default function Home() {
     triggerToast(newLang === 'hi' ? 'भाषा बदलकर हिन्दी कर दी गई है।' : 'Language switched to English.');
   };
 
-  // Show floating toast helper
   const triggerToast = (msg, duration = 3500) => {
     setToast({ message: msg, visible: true });
     setTimeout(() => {
@@ -50,7 +48,6 @@ export default function Home() {
     }, duration);
   };
 
-  // Verify auth session on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('netflix_user');
     const token = localStorage.getItem('netflix_token');
@@ -62,7 +59,6 @@ export default function Home() {
         console.error('Failed to parse saved user', e);
       }
 
-      // Verify token with backend
       fetch('http://localhost:5000/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -77,9 +73,7 @@ export default function Home() {
             setUser(null);
           }
         })
-        .catch(() => {
-          // Backend offline fallback
-        });
+        .catch(() => {});
     }
   }, []);
 
@@ -95,7 +89,6 @@ export default function Home() {
 
   const handleAuthSuccess = (userData, message) => {
     setUser(userData);
-    // Smoothly ensure page is anchored at the top hero banner upon login
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     triggerToast(
@@ -104,7 +97,6 @@ export default function Home() {
         : `Welcome back to Music, ${userData.name || 'Friend'}!`
     );
 
-    // If user clicked a video before logging in, play it immediately now!
     if (pendingPlayMovie) {
       setActiveVideoMovie(pendingPlayMovie);
       setPendingPlayMovie(null);
@@ -114,9 +106,7 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await fetch('http://localhost:5000/api/auth/logout', { method: 'POST' });
-    } catch (e) {
-      // Continue client logout
-    }
+    } catch (e) {}
     localStorage.removeItem('netflix_token');
     localStorage.removeItem('netflix_user');
     setUser(null);
@@ -126,7 +116,6 @@ export default function Home() {
     triggerToast(language === 'hi' ? 'आप साइन आउट हो गए हैं।' : 'You have been signed out.');
   };
 
-  // Video can only be played when user is logged in
   const handlePlayMovie = (movie) => {
     if (!user) {
       setPendingPlayMovie(movie);
@@ -143,7 +132,6 @@ export default function Home() {
 
   return (
     <>
-      {/* Netflix Navigation (Top Search Bar, Language Switcher, User Menu with Settings & Logout) */}
       <header>
         <Navbar
           user={user}
@@ -155,10 +143,6 @@ export default function Home() {
           onPlayMovie={handlePlayMovie}
         />
 
-        {/* Hero Section:
-            - When Logged Out: Official Netflix Landing with "Unlimited movies..." & email form
-            - When Logged In: Dynamic Netflix Browse Hero Banner with Play/Info buttons & 4K/8K quality
-        */}
         <Hero
           onOpenAuth={handleOpenAuth}
           user={user}
@@ -167,18 +151,14 @@ export default function Home() {
         />
       </header>
 
-      {/* Main Content Layout */}
       <main>
-        {/* Iconic Red Curved Arch Divider (Landing page accent) */}
         {!user && <div className="border-curve"></div>}
 
-        {/* Section 1: Trending Now Movies (Rank 1-10) */}
         <TrendingSlider
           onPlayMovie={handlePlayMovie}
           language={language}
         />
 
-        {/* Section 2: Trending Songs & Music Videos (Stream in 4K / 8K) */}
         <TrendingSongs
           onPlayMovie={handlePlayMovie}
           language={language}
@@ -189,10 +169,8 @@ export default function Home() {
           onOpenSettings={() => setSettingsModalOpen(true)}
         />
 
-        {/* Section 3: More Reasons to Join (Clean Cards) */}
         <FeatureBoxes language={language} />
 
-        {/* Section 4: Frequently Asked Questions (Email CTA hidden when logged in) */}
         <Faq
           onOpenAuth={handleOpenAuth}
           user={user}
@@ -200,13 +178,11 @@ export default function Home() {
         />
       </main>
 
-      {/* Netflix Footer */}
       <Footer
         language={language}
         onLanguageChange={handleLanguageChange}
       />
 
-      {/* Fullscreen Video Player for Movies & Songs (4K/8K streaming via youtube-nocookie) */}
       {activeVideoMovie && (
         <NetflixVideoPlayer
           movie={activeVideoMovie}
@@ -214,7 +190,6 @@ export default function Home() {
         />
       )}
 
-      {/* User Settings Modal */}
       <SettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
@@ -230,7 +205,6 @@ export default function Home() {
         }}
       />
 
-      {/* Authentication Modal */}
       <AuthModal
         isOpen={authModalOpen}
         initialMode={authMode}
@@ -239,7 +213,6 @@ export default function Home() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* Toast Alert */}
       <Toast message={toast.message} isVisible={toast.visible} />
     </>
   );

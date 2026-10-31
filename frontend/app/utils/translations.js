@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    // Navbar
+
     searchPlaceholder: 'Search movies, songs, artists...',
     signIn: 'Sign In',
     signOut: 'Sign Out',
@@ -14,28 +14,24 @@ export const translations = {
     ultraHd4k: '4K Ultra HD',
     ultraHd8k: '8K Ultra HD',
 
-    // Hero (Logged Out)
     heroTitle: 'Unlimited movies, TV shows and more',
     heroSubtitle: 'Starts at ₹149. Cancel at any time.',
     heroCta: 'Ready to watch? Enter your email to create or restart your membership.',
     emailPlaceholder: 'Email address',
     getStarted: 'Get Started',
 
-    // Hero Banner (Logged In)
     play: 'Play',
     moreInfo: 'More Info',
     top10Badge: '#1 in Movies Today',
     featuredSongBadge: 'Trending Song',
     trendingTag: 'BLOCKBUSTER STREAM',
 
-    // Sections
     trendingMovies: 'Trending Now',
     trendingSongs: 'Trending Songs & Music Videos',
     reasonsTitle: 'More Reasons to Join',
     faqTitle: 'Frequently Asked Questions',
     faqCta: 'Ready to watch? Enter your email to create or restart your membership.',
 
-    // Reasons Cards
     reason1Title: 'Enjoy on your TV',
     reason1Desc: 'Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.',
     reason2Title: 'Download your shows to watch offline',
@@ -45,7 +41,6 @@ export const translations = {
     reason4Title: 'Create profiles for kids',
     reason4Desc: 'Send kids on adventures with their favorite characters in a space made just for them — free with your membership.',
 
-    // Settings Modal
     settingsTitle: 'Playback & Account Settings',
     streamingQuality: 'Streaming Quality Preference',
     qualityAuto: 'Auto (Recommended)',
@@ -60,7 +55,6 @@ export const translations = {
     close: 'Close',
     settingsSaved: 'Settings saved successfully!',
 
-    // Footer
     questionsCall: 'Questions? Call 000-800-919-1694',
     faq: 'FAQ',
     helpCenter: 'Help Centre',
@@ -80,7 +74,7 @@ export const translations = {
     netflixIndia: 'Music India',
   },
   hi: {
-    // Navbar
+
     searchPlaceholder: 'फिल्में, गाने और कलाकार खोजें...',
     signIn: 'साइन इन करें',
     signOut: 'साइन आउट',
@@ -94,28 +88,24 @@ export const translations = {
     ultraHd4k: '4K अल्ट्रा एचडी',
     ultraHd8k: '8K अल्ट्रा एचडी',
 
-    // Hero (Logged Out)
     heroTitle: 'अनलिमिटेड फिल्में, टीवी शो और बहुत कुछ',
     heroSubtitle: '₹149 से शुरू। कभी भी कैंसिल करें।',
     heroCta: 'देखने के लिए तैयार हैं? अपनी सदस्यता बनाने या फिर से शुरू करने के लिए ईमेल दर्ज करें।',
     emailPlaceholder: 'ईमेल पता',
     getStarted: 'शुरू करें',
 
-    // Hero Banner (Logged In)
     play: 'चलाएं',
     moreInfo: 'और जानकारी',
     top10Badge: 'आज फिल्मों में #1',
     featuredSongBadge: 'ट्रेंडिंग गाना',
     trendingTag: 'ब्लॉकबस्टर स्ट्रीम',
 
-    // Sections
     trendingMovies: 'अभी ट्रेंडिंग में है',
     trendingSongs: 'ट्रेंडिंग गाने और म्यूज़िक वीडियो',
     reasonsTitle: 'शामिल होने के और कारण',
     faqTitle: 'अक्सर पूछे जाने वाले सवाल',
     faqCta: 'देखने के लिए तैयार हैं? अपनी सदस्यता बनाने या फिर से शुरू करने के लिए ईमेल दर्ज करें।',
 
-    // Reasons Cards
     reason1Title: 'अपने टीवी पर आनंद लें',
     reason1Desc: 'स्मार्ट टीवी, प्लेस्टेशन, एक्सबॉक्स, क्रोमकास्ट, एप्पल टीवी और अन्य डिवाइस पर देखें।',
     reason2Title: 'ऑफ़लाइन देखने के लिए शो डाउनलोड करें',
@@ -125,7 +115,6 @@ export const translations = {
     reason4Title: 'बच्चों के लिए प्रोफ़ाइल बनाएं',
     reason4Desc: 'बच्चों को उनके पसंदीदा किरदारों के साथ रोमांचक सफर पर भेजें — सदस्यता के साथ बिल्कुल मुफ्त।',
 
-    // Settings Modal
     settingsTitle: 'प्लेबैक और अकाउंट सेटिंग्स',
     streamingQuality: 'स्ट्रीमिंग क्वालिटी प्राथमिकता',
     qualityAuto: 'ऑटो (सुझाया गया)',
@@ -140,7 +129,6 @@ export const translations = {
     close: 'बंद करें',
     settingsSaved: 'सेटिंग्स सफलतापूर्वक सेव हो गईं!',
 
-    // Footer
     questionsCall: 'कोई सवाल है? 000-800-919-1694 पर कॉल करें',
     faq: 'FAQ',
     helpCenter: 'हेल्प सेंटर',

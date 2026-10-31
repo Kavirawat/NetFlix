@@ -22,12 +22,10 @@ export default function Navbar({
   const userMenuRef = useRef(null);
   const t = translations[language] || translations.en;
 
-  // Compute uppercase first letter of user's name
   const userInitial = user
     ? (user.name || user.email || 'U').trim().charAt(0).toUpperCase()
     : 'U';
 
-  // Comprehensive A to Z search across catalog + Live YouTube Data API v3
   useEffect(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
@@ -35,7 +33,6 @@ export default function Navbar({
       return;
     }
 
-    // 1. Instant local catalog matches
     const localFiltered = COMPREHENSIVE_CATALOG.filter((item) => {
       const titleMatch = (item.title || '').toLowerCase().includes(query);
       const artistMatch = (item.artist || '').toLowerCase().includes(query);
@@ -46,7 +43,6 @@ export default function Navbar({
 
     setSearchResults(localFiltered);
 
-    // 2. Query live YouTube Data API v3 via backend
     const timeout = setTimeout(() => {
       fetch(`http://localhost:5000/api/movies/youtube-search?q=${encodeURIComponent(query)}`)
         .then((res) => res.json())
@@ -60,14 +56,13 @@ export default function Navbar({
           }
         })
         .catch(() => {
-          // Fallback to local catalog matches
+
         });
     }, 280);
 
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -96,7 +91,7 @@ export default function Navbar({
     if (searchResults.length > 0) {
       handleSelectResult(searchResults[0]);
     } else {
-      // Dynamic fallback allows playing ANY song or movie A to Z via online stream
+
       handleSelectResult({
         searchQuery: query,
         title: query,
@@ -109,7 +104,7 @@ export default function Navbar({
 
   return (
     <div className="nav">
-      {/* Music Logo */}
+      
       <div
         className="logo"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -118,7 +113,6 @@ export default function Navbar({
         <img src="/custom-logo.png" alt="Music logo" />
       </div>
 
-      {/* Top Search Bar (Movies & Songs + Search/Enter Button) */}
       <div className="nav-search-container" ref={searchRef}>
         <form className={`nav-search-box ${isSearchOpen ? 'focused' : ''}`} onSubmit={handleSearchSubmit}>
           <input
@@ -147,13 +141,11 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Search / Enter Submit Button */}
           <button type="submit" className="search-submit-btn" title="Search (Enter)">
             <i className="fa-solid fa-magnifying-glass"></i>
           </button>
         </form>
 
-        {/* Instant Search Results Dropdown (A to Z) */}
         {isSearchOpen && searchQuery.trim() && (
           <div className="search-dropdown-menu">
             <div className="search-results-header">
@@ -161,7 +153,7 @@ export default function Navbar({
             </div>
 
             <div className="search-results-list">
-              {/* Universal Live Play Option for ANY custom query */}
+              
               <div
                 className="search-result-item search-live-stream-item"
                 onClick={() =>
@@ -187,7 +179,6 @@ export default function Navbar({
                 </button>
               </div>
 
-              {/* Filtered Catalog Matches (A to Z) */}
               {searchResults.map((item) => (
                 <div
                   key={item.id}
@@ -223,9 +214,8 @@ export default function Navbar({
         )}
       </div>
 
-      {/* Right Controls: Language & User Avatar */}
       <div className="nav-item">
-        {/* Language Selector: Earth/Globe icon removed as requested */}
+        
         <div className="nav-language-wrap">
           <select
             value={language}
@@ -239,7 +229,7 @@ export default function Navbar({
         </div>
 
         {user ? (
-          /* Logged In: ONLY user avatar icon with first letter. Dropdown shows name/email (active user badge removed) */
+          
           <div className="user-profile-menu-container" ref={userMenuRef}>
             <button
               type="button"
@@ -265,7 +255,6 @@ export default function Navbar({
 
                 <div className="dropdown-divider"></div>
 
-                {/* Settings Option */}
                 <button
                   type="button"
                   className="dropdown-menu-item"
@@ -280,7 +269,6 @@ export default function Navbar({
 
                 <div className="dropdown-divider"></div>
 
-                {/* Logout Option */}
                 <button
                   type="button"
                   className="dropdown-menu-item sign-out-item"
@@ -296,7 +284,7 @@ export default function Navbar({
             )}
           </div>
         ) : (
-          /* Logged Out: Red Sign In Button */
+          
           <button
             type="button"
             className="nav-btn-signin"
