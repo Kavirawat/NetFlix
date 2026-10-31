@@ -140,7 +140,8 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
 
     const lookupParam = movie?.imdbId || movie?.id || movie?.title;
     if (lookupParam && !movie?.trailerYoutubeId && !movie?.searchQuery) {
-      fetch(`http://localhost:5000/api/movies/watch/${encodeURIComponent(lookupParam)}`)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      fetch(`${backendUrl}/api/movies/watch/${encodeURIComponent(lookupParam)}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.movie) {

@@ -31,9 +31,10 @@ export default function ExploreMoreModal({
       return;
     }
 
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
     setIsSearching(true);
     const timeout = setTimeout(() => {
-      fetch(`http://localhost:5000/api/movies/youtube-search?q=${encodeURIComponent(q)}`)
+      fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(q)}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.results)) {

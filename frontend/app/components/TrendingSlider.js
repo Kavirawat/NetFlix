@@ -175,7 +175,8 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
   const t = translations[language] || translations.en;
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/movies/trending')
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    fetch(`${backendUrl}/api/movies/trending`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.trending && data.trending.length > 0) {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:5000/api/auth';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE = `${BACKEND_URL}/api/auth`;
 
 export default function AuthModal({
   isOpen,
