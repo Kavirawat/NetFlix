@@ -398,6 +398,10 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') {
+          e.stopImmediatePropagation();
+        }
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         } else {
@@ -464,7 +468,15 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     document.addEventListener('webkitfullscreenchange', handleFsChange);
 
     return () => {
-      document.body.style.overflow = '';
+      if (
+        typeof document !== 'undefined' &&
+        (document.querySelector('.youtube-explore-modal-backdrop') ||
+          document.querySelector('.auth-modal-backdrop'))
+      ) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
       window.removeEventListener('resize', checkOrientation);
       window.removeEventListener('orientationchange', checkOrientation);
       document.removeEventListener('fullscreenchange', handleFsChange);
@@ -476,6 +488,26 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let isPopped = false;
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ netflixPlayer: true }, '', window.location.href);
+
+      const handlePop = () => {
+        isPopped = true;
+        onClose();
+      };
+
+      window.addEventListener('popstate', handlePop);
+      return () => {
+        window.removeEventListener('popstate', handlePop);
+        if (!isPopped && window.history.state?.netflixPlayer) {
+          window.history.back();
+        }
+      };
+    }
+  }, [onClose]);
 
   const getActiveSubtitle = () => {
     if (!ccActive || subtitlesLanguage === 'Off') return null;

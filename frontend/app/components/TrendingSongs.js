@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { TRENDING_SONGS } from '../data/songs';
 import { translations } from '../utils/translations';
 import ExploreMoreModal from './ExploreMoreModal';
@@ -18,6 +18,44 @@ export default function TrendingSongs({
   const [songs] = useState(TRENDING_SONGS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const t = translations[language] || translations.en;
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    if (typeof window !== 'undefined' && window.location.hash !== '#explore') {
+      window.history.pushState({ explore: true }, '', '#explore');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    if (typeof window !== 'undefined' && window.location.hash === '#explore') {
+      window.history.pushState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
+  useEffect(() => {
+    const handleHashSync = () => {
+      if (typeof window === 'undefined') return;
+      if (window.location.hash === '#explore') {
+        setIsModalOpen(true);
+      } else {
+        if (!document.querySelector('.netflix-player-container')) {
+          setIsModalOpen(false);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.location.hash === '#explore') {
+      setIsModalOpen(true);
+    }
+
+    window.addEventListener('hashchange', handleHashSync);
+    window.addEventListener('popstate', handleHashSync);
+    return () => {
+      window.removeEventListener('hashchange', handleHashSync);
+      window.removeEventListener('popstate', handleHashSync);
+    };
+  }, []);
 
   const initialSongs = songs.slice(0, 6);
 
@@ -99,7 +137,7 @@ export default function TrendingSongs({
 
             <div
               className="song-card song-more-card"
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenModal}
               title={isHindi ? 'और गाने व फिल्में देखें' : 'Explore More Songs & Movies'}
             >
               <div className="song-more-inner">
@@ -127,7 +165,7 @@ export default function TrendingSongs({
 
       <ExploreMoreModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onPlayMovie={onPlayMovie}
         language={language}
         user={user}

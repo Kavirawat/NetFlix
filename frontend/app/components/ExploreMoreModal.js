@@ -66,6 +66,13 @@ export default function ExploreMoreModal({
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        if (
+          document.querySelector('.netflix-player-container') ||
+          document.querySelector('.auth-modal-backdrop') ||
+          document.querySelector('.settings-modal-backdrop')
+        ) {
+          return;
+        }
         onClose();
       }
     };
@@ -162,7 +169,6 @@ export default function ExploreMoreModal({
 
     if (filteredItems.length > 0) {
       onPlayMovie && onPlayMovie(filteredItems[0]);
-      onClose();
     } else {
 
       onPlayMovie &&
@@ -173,7 +179,6 @@ export default function ExploreMoreModal({
           type: 'stream',
           year: '2024',
         });
-      onClose();
     }
   };
 
@@ -325,7 +330,6 @@ export default function ExploreMoreModal({
                   type="button"
                   className="nav-btn-signin"
                   onClick={() => {
-                    onClose();
                     onOpenAuth && onOpenAuth('signin');
                   }}
                 >
@@ -363,7 +367,6 @@ export default function ExploreMoreModal({
                   type: 'stream',
                   year: '2024',
                 });
-              onClose();
             }}
             title={`Play "${searchQuery.trim()}" in 4K`}
           >
@@ -398,7 +401,6 @@ export default function ExploreMoreModal({
                 className="yt-video-card"
                 onClick={() => {
                   onPlayMovie && onPlayMovie(item);
-                  onClose();
                 }}
                 title={`Click to play ${item.title}`}
               >
