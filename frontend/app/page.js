@@ -12,8 +12,7 @@ import AuthModal from './components/AuthModal';
 import SettingsModal from './components/SettingsModal';
 import Toast from './components/Toast';
 import NetflixVideoPlayer from './components/NetflixVideoPlayer';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+import { getBackendUrl } from './utils/apiConfig';
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -61,7 +60,8 @@ export default function Home() {
         console.error('Failed to parse saved user', e);
       }
 
-      fetch(`${BACKEND_URL}/api/auth/me`, {
+      const backendUrl = getBackendUrl();
+      fetch(`${backendUrl}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -107,7 +107,8 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${BACKEND_URL}/api/auth/logout`, { method: 'POST' });
+      const backendUrl = getBackendUrl();
+      await fetch(`${backendUrl}/api/auth/logout`, { method: 'POST' });
     } catch (e) {}
     localStorage.removeItem('netflix_token');
     localStorage.removeItem('netflix_user');

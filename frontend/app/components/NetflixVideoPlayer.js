@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { TRENDING_SONGS } from '../data/songs';
 import { COMPREHENSIVE_CATALOG } from '../data/catalog';
+import { getBackendUrl } from '../utils/apiConfig';
 
 function getNextVideo(current) {
   const allVideos = [...TRENDING_SONGS, ...COMPREHENSIVE_CATALOG];
@@ -225,7 +226,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
 
     const lookupParam = movie?.imdbId || movie?.id || movie?.title;
     if (lookupParam && !movie?.trailerYoutubeId && !movie?.searchQuery) {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const backendUrl = getBackendUrl();
       fetch(`${backendUrl}/api/movies/watch/${encodeURIComponent(lookupParam)}`)
         .then((res) => res.json())
         .then((data) => {
@@ -546,6 +547,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
       document.body.classList.add('video-player-active');
       document.documentElement.classList.add('video-player-active');
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     }
 
     const checkOrientation = () => {
@@ -586,8 +588,10 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
           document.querySelector('.auth-modal-backdrop')
         ) {
           document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
         } else {
           document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
         }
       }
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);

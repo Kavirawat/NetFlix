@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-const API_BASE = `${BACKEND_URL}/api/auth`;
+import { getBackendUrl } from '../utils/apiConfig';
 
 export default function AuthModal({
   isOpen,
@@ -67,7 +65,8 @@ export default function AuthModal({
     setLoading(true);
 
     try {
-      const endpoint = mode === 'signup' ? `${API_BASE}/register` : `${API_BASE}/login`;
+      const apiBase = `${getBackendUrl()}/api/auth`;
+      const endpoint = mode === 'signup' ? `${apiBase}/register` : `${apiBase}/login`;
       const payload = mode === 'signup' ? { name, email, password } : { email, password };
 
       const res = await fetch(endpoint, {

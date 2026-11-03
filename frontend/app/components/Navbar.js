@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { translations } from '../utils/translations';
 import { COMPREHENSIVE_CATALOG } from '../data/catalog';
+import { getBackendUrl } from '../utils/apiConfig';
 
 export default function Navbar({
   user,
@@ -44,7 +45,7 @@ export default function Navbar({
     setSearchResults(localFiltered);
 
     const timeout = setTimeout(() => {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const backendUrl = getBackendUrl();
       fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(query)}`)
         .then((res) => res.json())
         .then((data) => {

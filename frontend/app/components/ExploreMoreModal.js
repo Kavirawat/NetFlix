@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { COMPREHENSIVE_CATALOG } from '../data/catalog';
 import { TRENDING_SONGS } from '../data/songs';
+import { getBackendUrl } from '../utils/apiConfig';
 
 export default function ExploreMoreModal({
   isOpen,
@@ -23,6 +24,7 @@ export default function ExploreMoreModal({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const gridScrollRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   const [displayLimit, setDisplayLimit] = useState(16);
   const [extraLoadedItems, setExtraLoadedItems] = useState([]);
@@ -67,7 +69,7 @@ export default function ExploreMoreModal({
       'arijit singh latest songs',
     ];
     const q = FRESH_SEARCH_TOPICS[Math.floor(Math.random() * FRESH_SEARCH_TOPICS.length)];
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = getBackendUrl();
     fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(q)}`)
       .then((res) => res.json())
       .then((data) => {
@@ -86,7 +88,7 @@ export default function ExploreMoreModal({
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = getBackendUrl();
     setIsSearching(true);
     const timeout = setTimeout(() => {
       fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(q)}`)
@@ -202,13 +204,13 @@ export default function ExploreMoreModal({
     }
   }, [activeFilter, searchQuery]);
 
-  const fetchMoreFromYouTube = () => {
+  const fetchMoreFromYouTube = useCallback(() => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
     const topic = MORE_TOPICS[fetchPageIndex % MORE_TOPICS.length];
     setFetchPageIndex((prev) => prev + 1);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = getBackendUrl();
     fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(topic)}`)
       .then((res) => res.json())
       .then((data) => {
@@ -223,18 +225,36 @@ export default function ExploreMoreModal({
       })
       .catch(() => {})
       .finally(() => setIsLoadingMore(false));
-  };
+  }, [isLoadingMore, fetchPageIndex]);
 
   const handleGridScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 360) {
+    if (scrollHeight - scrollTop - clientHeight < 650) {
       if (displayLimit < filteredItems.length) {
         setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length));
-      } else if (!isLoadingMore && fetchPageIndex < MORE_TOPICS.length) {
+      } else if (!isLoadingMore) {
         fetchMoreFromYouTube();
       }
     }
   };
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0] && entries[0].isIntersecting) {
+          if (displayLimit < filteredItems.length) {
+            setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length));
+          } else if (!isLoadingMore) {
+            fetchMoreFromYouTube();
+          }
+        }
+      },
+      { root: gridScrollRef.current, rootMargin: '300px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [displayLimit, filteredItems.length, isLoadingMore, fetchMoreFromYouTube]);
 
   const filteredItems = useMemo(() => {
     let list = allMediaItems;
@@ -570,7 +590,7 @@ export default function ExploreMoreModal({
           </div>
 
           {displayLimit < filteredItems.length && (
-            <div className="load-more-sentinel">
+            <div className="load-more-sentinel" ref={sentinelRef}>
               <button
                 type="button"
                 className="load-more-btn"
@@ -581,6 +601,8 @@ export default function ExploreMoreModal({
               </button>
             </div>
           )}
+
+          <div ref={sentinelRef} style={{ height: '10px', width: '100%', pointerEvents: 'none' }} />
 
           {isLoadingMore && (
             <div className="infinite-scroll-loader">

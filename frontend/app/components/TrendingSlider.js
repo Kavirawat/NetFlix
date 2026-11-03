@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { translations } from '../utils/translations';
+import { getBackendUrl } from '../utils/apiConfig';
 
 const TRENDING_ITEMS = [
   {
@@ -175,7 +176,7 @@ export default function TrendingSlider({ onPlayMovie, language = 'en' }) {
   const t = translations[language] || translations.en;
 
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = getBackendUrl();
     fetch(`${backendUrl}/api/movies/trending`)
       .then((res) => res.json())
       .then((data) => {
