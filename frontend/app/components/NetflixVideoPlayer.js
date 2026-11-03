@@ -709,7 +709,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
 
   const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || '8FkLRUJj-o0';
   const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || '8FkLRUJj-o0';
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&enablejsapi=1&rel=0&playsinline=1`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1`;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
