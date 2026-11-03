@@ -39,8 +39,14 @@ export default function ExploreMoreModal({
     return array;
   };
 
-  const shuffledBaseSongs = useMemo(() => shuffleList(TRENDING_SONGS), []);
-  const shuffledBaseCatalog = useMemo(() => shuffleList(COMPREHENSIVE_CATALOG), []);
+  const [baseSongs, setBaseSongs] = useState(TRENDING_SONGS);
+  const [baseCatalog, setBaseCatalog] = useState(COMPREHENSIVE_CATALOG);
+
+  useEffect(() => {
+    // Client-side shuffle after hydration to avoid any text mismatch error
+    setBaseSongs(shuffleList(TRENDING_SONGS));
+    setBaseCatalog(shuffleList(COMPREHENSIVE_CATALOG));
+  }, []);
 
   const MORE_TOPICS = [
     'latest bollywood songs 2024',
@@ -173,21 +179,21 @@ export default function ExploreMoreModal({
       uniqueList.push({
         ...item,
         duration: item.duration || (item.type === 'song' ? '3:45' : '2h 15m'),
-        views: item.views || `${Math.floor(Math.random() * 80 + 20)}M views`,
+        views: item.views || `${((uniqueList.length * 7 + 23) % 75) + 20}M views`,
         uploaded: item.uploaded || '2 weeks ago',
       });
     };
 
     freshOnRefreshItems.forEach(addItem);
 
-    shuffledBaseSongs.forEach(addItem);
+    baseSongs.forEach(addItem);
 
-    shuffledBaseCatalog.forEach(addItem);
+    baseCatalog.forEach(addItem);
 
     extraLoadedItems.forEach(addItem);
 
     return uniqueList;
-  }, [freshOnRefreshItems, shuffledBaseSongs, shuffledBaseCatalog, extraLoadedItems]);
+  }, [freshOnRefreshItems, baseSongs, baseCatalog, extraLoadedItems]);
 
   useEffect(() => {
     setDisplayLimit(16);

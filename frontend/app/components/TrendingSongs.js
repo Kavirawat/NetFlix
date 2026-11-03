@@ -15,16 +15,19 @@ export default function TrendingSongs({
   onOpenSettings,
 }) {
   const containerRef = useRef(null);
-  const [songs] = useState(() => {
+  const [songs, setSongs] = useState(TRENDING_SONGS);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const t = translations[language] || translations.en;
+
+  useEffect(() => {
+    // Client-side shuffle after hydration to avoid server/client mismatch
     const arr = [...TRENDING_SONGS];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return arr;
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const t = translations[language] || translations.en;
+    setSongs(arr);
+  }, []);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
