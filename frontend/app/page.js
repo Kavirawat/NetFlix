@@ -189,6 +189,8 @@ export default function Home() {
         <NetflixVideoPlayer
           movie={activeVideoMovie}
           onClose={() => setActiveVideoMovie(null)}
+          onPlayMovie={handlePlayMovie}
+          language={language}
         />
       )}
 

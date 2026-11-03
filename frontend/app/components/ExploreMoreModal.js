@@ -22,6 +22,21 @@ export default function ExploreMoreModal({
   const [isSearching, setIsSearching] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+  const gridScrollRef = useRef(null);
+
+  const [displayLimit, setDisplayLimit] = useState(16);
+  const [extraLoadedItems, setExtraLoadedItems] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [fetchPageIndex, setFetchPageIndex] = useState(0);
+
+  const MORE_TOPICS = [
+    'latest bollywood songs 2024',
+    'trending romantic songs hindi',
+    'punjabi viral party songs',
+    'top blockbuster movie songs hindi',
+    'arijit singh hit songs',
+    'best web series trailers hindi',
+  ];
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -125,8 +140,51 @@ export default function ExploreMoreModal({
 
     COMPREHENSIVE_CATALOG.forEach(addItem);
 
+    extraLoadedItems.forEach(addItem);
+
     return uniqueList;
-  }, []);
+  }, [extraLoadedItems]);
+
+  useEffect(() => {
+    setDisplayLimit(16);
+    if (gridScrollRef.current) {
+      gridScrollRef.current.scrollTop = 0;
+    }
+  }, [activeFilter, searchQuery]);
+
+  const fetchMoreFromYouTube = () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    const topic = MORE_TOPICS[fetchPageIndex % MORE_TOPICS.length];
+    setFetchPageIndex((prev) => prev + 1);
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(topic)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.results) && data.results.length > 0) {
+          setExtraLoadedItems((prev) => {
+            const seen = new Set(prev.map((i) => i.trailerYoutubeId || i.id));
+            const newOnes = data.results.filter((i) => !seen.has(i.trailerYoutubeId || i.id));
+            return [...prev, ...newOnes];
+          });
+          setDisplayLimit((prev) => prev + 12);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingMore(false));
+  };
+
+  const handleGridScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 360) {
+      if (displayLimit < filteredItems.length) {
+        setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length));
+      } else if (!isLoadingMore && fetchPageIndex < MORE_TOPICS.length) {
+        fetchMoreFromYouTube();
+      }
+    }
+  };
 
   const filteredItems = useMemo(() => {
     let list = allMediaItems;
@@ -393,9 +451,13 @@ export default function ExploreMoreModal({
           </div>
         )}
 
-        <div className="yt-video-grid-scroll">
+        <div
+          className="yt-video-grid-scroll"
+          ref={gridScrollRef}
+          onScroll={handleGridScroll}
+        >
           <div className="yt-video-grid">
-            {filteredItems.map((item) => (
+            {filteredItems.slice(0, displayLimit).map((item) => (
               <div
                 key={item.id}
                 className="yt-video-card"
@@ -456,6 +518,26 @@ export default function ExploreMoreModal({
               </div>
             ))}
           </div>
+
+          {displayLimit < filteredItems.length && (
+            <div className="load-more-sentinel">
+              <button
+                type="button"
+                className="load-more-btn"
+                onClick={() => setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length))}
+              >
+                <i className="fa-solid fa-angles-down"></i>
+                <span>{isHindi ? 'और गाने व फिल्में लोड करें' : 'Load More Videos'}</span>
+              </button>
+            </div>
+          )}
+
+          {isLoadingMore && (
+            <div className="infinite-scroll-loader">
+              <i className="fa-solid fa-circle-notch fa-spin"></i>
+              <span>{isHindi ? 'YouTube से और वीडियो लोड हो रहे हैं...' : 'Loading more videos from YouTube...'}</span>
+            </div>
+          )}
 
           {filteredItems.length === 0 && (
             <div className="yt-no-results">

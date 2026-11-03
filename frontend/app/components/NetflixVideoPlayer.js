@@ -1,6 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { TRENDING_SONGS } from '../data/songs';
+import { COMPREHENSIVE_CATALOG } from '../data/catalog';
+
+function getNextVideo(current) {
+  const allVideos = [...TRENDING_SONGS, ...COMPREHENSIVE_CATALOG];
+  if (!current) return allVideos[0];
+  const currId = (current.trailerYoutubeId || current.id || current.title || '').toLowerCase().replace(/^yt-/, '');
+  const idx = allVideos.findIndex((item) => {
+    const itId = (item.trailerYoutubeId || item.id || item.title || '').toLowerCase().replace(/^yt-/, '');
+    return itId === currId || (item.title && current.title && item.title.toLowerCase() === current.title.toLowerCase());
+  });
+  if (idx >= 0 && idx < allVideos.length - 1) {
+    return allVideos[idx + 1];
+  }
+  return allVideos[0] || TRENDING_SONGS[0];
+}
 
 const VERIFIED_TRAILERS = {
   animal: { id: '8FkLRUJj-o0', title: 'Animal', year: '2023', match: '99% Match', age: 'A (18+)', rating: '8.4', duration: '3h 21m' },
@@ -86,7 +102,7 @@ function formatTime(seconds) {
   return `${pad(mins)}:${pad(secs)}`;
 }
 
-export default function NetflixVideoPlayer({ movie, onClose }) {
+export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, language = 'en' }) {
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
   const scrubberRailRef = useRef(null);
@@ -114,6 +130,71 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
   const [ccToast, setCcToast] = useState('');
   const ccToastTimeoutRef = useRef(null);
 
+  const [centerFlash, setCenterFlash] = useState(null);
+  const flashTimeoutRef = useRef(null);
+
+  const [nextCountdown, setNextCountdown] = useState(null);
+  const [nextUpVideo, setNextUpVideo] = useState(null);
+  const countdownTimerRef = useRef(null);
+
+  const triggerCenterFlash = (type) => {
+    setCenterFlash(type);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => {
+      setCenterFlash(null);
+    }, 650);
+  };
+
+  const playNextVideo = useCallback((targetVideo) => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setNextCountdown(null);
+    setNextUpVideo(null);
+    const next = targetVideo || getNextVideo(resolvedMovie);
+    if (!next) return;
+
+    if (onPlayMovie) {
+      onPlayMovie(next);
+    } else {
+      setResolvedMovie(resolveVideoMeta(next));
+      setCurrentTime(0);
+      setIsPlaying(true);
+    }
+  }, [resolvedMovie, onPlayMovie]);
+
+  const cancelNextCountdown = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setNextCountdown(null);
+    setNextUpVideo(null);
+  };
+
+  const startNextVideoCountdown = useCallback(() => {
+    if (nextCountdown !== null) return;
+    const next = getNextVideo(resolvedMovie);
+    setNextUpVideo(next);
+    setNextCountdown(5);
+
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    let rem = 5;
+    countdownTimerRef.current = setInterval(() => {
+      rem -= 1;
+      if (rem <= 0) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+        setNextCountdown(null);
+        setNextUpVideo(null);
+        playNextVideo(next);
+      } else {
+        setNextCountdown(rem);
+      }
+    }, 1000);
+  }, [resolvedMovie, nextCountdown, playNextVideo]);
+
   const triggerCcToast = (text) => {
     setCcToast(text);
     if (ccToastTimeoutRef.current) clearTimeout(ccToastTimeoutRef.current);
@@ -124,14 +205,17 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
 
   const sendCommand = useCallback((func, args = []) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: func,
-          args: args,
-        }),
-        '*'
-      );
+      try {
+        iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: func,
+            args: args,
+          }),
+          '*'
+        );
+      } catch (e) {}
     }
   }, []);
 
@@ -227,9 +311,11 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     if (isPlaying) {
       sendCommand('pauseVideo');
       setIsPlaying(false);
+      triggerCenterFlash('pause');
     } else {
       sendCommand('playVideo');
       setIsPlaying(true);
+      triggerCenterFlash('play');
     }
     handleUserActivity();
   };
@@ -369,7 +455,11 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
             setDuration(data.info.duration);
           }
           if (typeof data.info.playerState === 'number') {
-            setIsPlaying(data.info.playerState === 1);
+            if (data.info.playerState === 0) {
+              startNextVideoCountdown();
+            } else {
+              setIsPlaying(data.info.playerState === 1);
+            }
           }
           if (typeof data.info.muted === 'boolean') {
             setIsMuted(data.info.muted);
@@ -388,12 +478,28 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     if (!isPlaying) return;
     const interval = setInterval(() => {
       setCurrentTime((prev) => {
-        if (prev >= duration) return prev;
+        if (prev >= duration) {
+          if (nextCountdown === null && duration > 5) {
+            startNextVideoCountdown();
+          }
+          return prev;
+        }
         return prev + 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isPlaying, duration]);
+  }, [isPlaying, duration, nextCountdown, startNextVideoCountdown]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        try {
+          iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
+        } catch (e) {}
+      }
+    }, 1500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -436,7 +542,11 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
   }, [onClose, isPlaying, isMuted]);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('video-player-active');
+      document.documentElement.classList.add('video-player-active');
+      document.body.style.overflow = 'hidden';
+    }
 
     const checkOrientation = () => {
       if (typeof window !== 'undefined') {
@@ -468,15 +578,20 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     document.addEventListener('webkitfullscreenchange', handleFsChange);
 
     return () => {
-      if (
-        typeof document !== 'undefined' &&
-        (document.querySelector('.youtube-explore-modal-backdrop') ||
-          document.querySelector('.auth-modal-backdrop'))
-      ) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('video-player-active');
+        document.documentElement.classList.remove('video-player-active');
+        if (
+          document.querySelector('.youtube-explore-modal-backdrop') ||
+          document.querySelector('.auth-modal-backdrop')
+        ) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = '';
+        }
       }
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       window.removeEventListener('resize', checkOrientation);
       window.removeEventListener('orientationchange', checkOrientation);
       document.removeEventListener('fullscreenchange', handleFsChange);
@@ -562,9 +677,10 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
     return isHi ? '♪ [धुन और संगीत जारी है...] ♪' : '♪ [Music Playing Continuously...] ♪';
   };
 
-  const videoId = resolvedMovie.id || resolvedMovie.trailerYoutubeId || 'DydmpkhEvAg';
+  const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || 'DydmpkhEvAg';
+  const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || 'DydmpkhEvAg';
   const originParam = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-  const embedUrl = resolvedMovie.searchQuery
+  const embedUrl = resolvedMovie.searchQuery && !resolvedMovie.trailerYoutubeId && !resolvedMovie.id
     ? `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(resolvedMovie.searchQuery)}&autoplay=1&enablejsapi=1&rel=0&modestbranding=1&controls=0&origin=${encodeURIComponent(originParam)}&cc_load_policy=1&cc_lang_pref=en`
     : `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&controls=0&iv_load_policy=3&fs=1&origin=${encodeURIComponent(originParam)}&cc_load_policy=1&cc_lang_pref=en`;
 
@@ -616,14 +732,112 @@ export default function NetflixVideoPlayer({ movie, onClose }) {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           className="youtube-player-frame"
+          onLoad={() => {
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+              try {
+                iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
+              } catch (e) {}
+            }
+          }}
         ></iframe>
       </div>
 
       <div
         className="player-touch-interceptor"
-        onClick={handleToggleControls}
-        onTouchEnd={handleToggleControls}
+        onClick={(e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          togglePlayPause();
+        }}
       />
+
+      {/* Center Big Play / Pause Button */}
+      <div
+        className={`player-center-control ${showControls || !isPlaying ? 'active' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          togglePlayPause();
+        }}
+      >
+        <button
+          type="button"
+          className={`center-play-pause-btn ${!isPlaying ? 'is-paused' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlayPause();
+          }}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+          title={isPlaying ? 'Pause (Space / Click)' : 'Play (Space / Click)'}
+        >
+          <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+        </button>
+      </div>
+
+      {/* Center Animated Feedback on Toggle */}
+      {centerFlash && (
+        <div className="center-flash-ripple">
+          <div className="center-flash-circle">
+            <i className={`fa-solid ${centerFlash === 'play' ? 'fa-play' : 'fa-pause'}`}></i>
+          </div>
+        </div>
+      )}
+
+      {/* 5-Second Autoplay Next Video Card */}
+      {nextCountdown !== null && nextUpVideo && (
+        <div className="player-next-up-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="next-up-header">
+            <span className="next-up-badge">
+              <i className="fa-solid fa-forward-step"></i> {language === 'hi' ? `अगला वीडियो ${nextCountdown}s में...` : `Next video in ${nextCountdown}s`}
+            </span>
+            <button
+              type="button"
+              className="next-up-cancel-btn"
+              onClick={cancelNextCountdown}
+              title={language === 'hi' ? 'ऑटोप्ले रद्द करें' : 'Cancel Autoplay'}
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div className="next-up-body">
+            <img
+              src={nextUpVideo.poster || (nextUpVideo.trailerYoutubeId ? `https://img.youtube.com/vi/${nextUpVideo.trailerYoutubeId}/hqdefault.jpg` : '/logo1.jpg')}
+              alt={nextUpVideo.title}
+              className="next-up-thumb"
+              onError={(e) => {
+                e.target.src = '/logo1.jpg';
+              }}
+            />
+            <div className="next-up-info">
+              <h4 title={nextUpVideo.title}>{nextUpVideo.title}</h4>
+              <p>{nextUpVideo.artist || nextUpVideo.album || nextUpVideo.year || 'Music Official'}</p>
+            </div>
+          </div>
+
+          <div className="next-up-actions">
+            <button
+              type="button"
+              className="next-up-play-btn"
+              onClick={() => playNextVideo(nextUpVideo)}
+            >
+              <i className="fa-solid fa-play"></i> {language === 'hi' ? 'अभी चलाएं' : 'Play Now'}
+            </button>
+            <button
+              type="button"
+              className="next-up-stay-btn"
+              onClick={cancelNextCountdown}
+            >
+              {language === 'hi' ? `रद्द करें (${nextCountdown}s)` : `Cancel (${nextCountdown}s)`}
+            </button>
+          </div>
+
+          <div className="next-up-timer-bar">
+            <div
+              className="next-up-timer-fill"
+              style={{ width: `${((5 - nextCountdown) / 5) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
 
       <div className={`player-custom-controls-dock ${showControls ? 'visible' : ''}`}>
         
