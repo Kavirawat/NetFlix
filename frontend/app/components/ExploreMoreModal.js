@@ -50,14 +50,18 @@ export default function ExploreMoreModal({
     setBaseCatalog(shuffleList(COMPREHENSIVE_CATALOG));
   }, []);
 
-  const MORE_TOPICS = [
-    'latest bollywood songs 2024',
-    'trending romantic songs hindi',
-    'punjabi viral party songs',
-    'top blockbuster movie songs hindi',
-    'arijit singh hit songs',
-    'best web series trailers hindi',
-  ];
+  const CATEGORY_TOPICS = {
+    all: ['latest bollywood songs 2024', 'blockbuster movie trailers hindi', 'trending web series trailer hindi'],
+    songs: ['latest bollywood songs 2024', 'top trending hindi songs', 'arijit singh hit songs'],
+    movies: ['blockbuster bollywood movies trailer', 'latest action movie trailers hindi', 'south hindi dubbed movies trailer'],
+    series: ['top trending web series hindi', 'netflix series trailer hindi', 'best crime thriller web series'],
+    romantic: ['romantic hindi songs 2024', 'arijit singh love songs', 'best bollywood romantic hits'],
+    party: ['party dance songs bollywood', 'club party tracks hindi', 'punjabi party dance songs'],
+    punjabi: ['punjabi viral songs 2024', 'karan aujla hit songs', 'diljit dosanjh top tracks'],
+    action: ['action movie trailers hindi', 'south action trailers hindi dubbed', 'blockbuster thriller trailers'],
+    devotional: ['ram bhajan ramayana songs', 'bhakti geet hindi', 'deva deva shiva devotional'],
+    arijit: ['arijit singh best songs', 'arijit singh live acoustic', 'arijit singh latest romantic hits'],
+  };
 
   useEffect(() => {
     const FRESH_SEARCH_TOPICS = [
@@ -166,6 +170,7 @@ export default function ExploreMoreModal({
     const uniqueList = [];
 
     const addItem = (item) => {
+      if (!item) return;
       const normTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const ytId = item.trailerYoutubeId;
       const poster = item.poster;
@@ -180,19 +185,65 @@ export default function ExploreMoreModal({
 
       uniqueList.push({
         ...item,
+        type: item.type || 'song',
         duration: item.duration || (item.type === 'song' ? '3:45' : '2h 15m'),
         views: item.views || `${((uniqueList.length * 7 + 23) % 75) + 20}M views`,
         uploaded: item.uploaded || '2 weeks ago',
       });
     };
 
-    freshOnRefreshItems.forEach(addItem);
+    // Separate items by type for rich interleaved mixing in "All"
+    const songsPool = [];
+    const moviesPool = [];
+    const seriesPool = [];
+    const otherPool = [];
 
-    baseSongs.forEach(addItem);
+    baseSongs.forEach((item) => {
+      const type = item.type || 'song';
+      if (type === 'song') songsPool.push({ ...item, type: 'song' });
+      else if (type === 'movie') moviesPool.push({ ...item, type: 'movie' });
+      else if (type === 'series') seriesPool.push({ ...item, type: 'series' });
+      else otherPool.push(item);
+    });
 
-    baseCatalog.forEach(addItem);
+    baseCatalog.forEach((item) => {
+      const type = item.type || 'movie';
+      if (type === 'movie') moviesPool.push({ ...item, type: 'movie' });
+      else if (type === 'series') seriesPool.push({ ...item, type: 'series' });
+      else if (type === 'song') songsPool.push({ ...item, type: 'song' });
+      else otherPool.push(item);
+    });
 
-    extraLoadedItems.forEach(addItem);
+    // Create a rich, rhythmic mix: 1 Song, 1 Movie, 1 Song, 1 Web Series...
+    const mixedStream = [];
+    let s = 0, m = 0, sr = 0, f = 0, e = 0;
+    const totalItems =
+      songsPool.length +
+      moviesPool.length +
+      seriesPool.length +
+      freshOnRefreshItems.length +
+      extraLoadedItems.length;
+
+    while (
+      mixedStream.length < totalItems &&
+      (s < songsPool.length ||
+        m < moviesPool.length ||
+        sr < seriesPool.length ||
+        f < freshOnRefreshItems.length ||
+        e < extraLoadedItems.length)
+    ) {
+      if (f < freshOnRefreshItems.length) mixedStream.push(freshOnRefreshItems[f++]);
+      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
+      if (m < moviesPool.length) mixedStream.push(moviesPool[m++]);
+      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
+      if (sr < seriesPool.length) mixedStream.push(seriesPool[sr++]);
+      if (e < extraLoadedItems.length) mixedStream.push(extraLoadedItems[e++]);
+      if (m < moviesPool.length) mixedStream.push(moviesPool[m++]);
+      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
+    }
+
+    otherPool.forEach((item) => mixedStream.push(item));
+    mixedStream.forEach(addItem);
 
     return uniqueList;
   }, [freshOnRefreshItems, baseSongs, baseCatalog, extraLoadedItems]);
@@ -207,7 +258,8 @@ export default function ExploreMoreModal({
   const fetchMoreFromYouTube = useCallback(() => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
-    const topic = MORE_TOPICS[fetchPageIndex % MORE_TOPICS.length];
+    const topicsForFilter = CATEGORY_TOPICS[activeFilter] || CATEGORY_TOPICS.all;
+    const topic = topicsForFilter[fetchPageIndex % topicsForFilter.length];
     setFetchPageIndex((prev) => prev + 1);
 
     const backendUrl = getBackendUrl();
@@ -225,7 +277,7 @@ export default function ExploreMoreModal({
       })
       .catch(() => {})
       .finally(() => setIsLoadingMore(false));
-  }, [isLoadingMore, fetchPageIndex]);
+  }, [isLoadingMore, fetchPageIndex, activeFilter, CATEGORY_TOPICS]);
 
   const handleGridScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -258,12 +310,110 @@ export default function ExploreMoreModal({
 
   const filteredItems = useMemo(() => {
     let list = allMediaItems;
+
     if (activeFilter === 'songs') {
       list = list.filter((i) => i.type === 'song');
     } else if (activeFilter === 'movies') {
       list = list.filter((i) => i.type === 'movie');
     } else if (activeFilter === 'series') {
       list = list.filter((i) => i.type === 'series');
+    } else if (activeFilter === 'romantic') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
+        return (
+          text.includes('romantic') ||
+          text.includes('love') ||
+          text.includes('ishq') ||
+          text.includes('pyaar') ||
+          text.includes('dil') ||
+          text.includes('chaleya') ||
+          text.includes('kesariya') ||
+          text.includes('heeriye') ||
+          text.includes('sajni') ||
+          text.includes('ve kamleya') ||
+          text.includes('satranga') ||
+          text.includes('tum se') ||
+          text.includes('o maahi') ||
+          text.includes('jaane jaan') ||
+          text.includes('pehle bhi main') ||
+          text.includes('bad newz')
+        );
+      });
+    } else if (activeFilter === 'party') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
+        return (
+          text.includes('party') ||
+          text.includes('dance') ||
+          text.includes('anthem') ||
+          text.includes('beat') ||
+          text.includes('tauba') ||
+          text.includes('aaj ki raat') ||
+          text.includes('aayi nai') ||
+          text.includes('pushpa') ||
+          text.includes('jhoome jo pathaan') ||
+          text.includes('taras') ||
+          text.includes('illuminati') ||
+          text.includes('dhol') ||
+          text.includes('groove')
+        );
+      });
+    } else if (activeFilter === 'punjabi') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
+        return (
+          text.includes('punjabi') ||
+          text.includes('aujla') ||
+          text.includes('diljit') ||
+          text.includes('arjan') ||
+          text.includes('vailly') ||
+          text.includes('bhangra') ||
+          text.includes('shubh') ||
+          text.includes('dhillon') ||
+          text.includes('moose') ||
+          text.includes('lover') ||
+          text.includes('softly') ||
+          text.includes('ammy')
+        );
+      });
+    } else if (activeFilter === 'action') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
+        return (
+          text.includes('action') ||
+          text.includes('thriller') ||
+          text.includes('animal') ||
+          text.includes('jawan') ||
+          text.includes('salaar') ||
+          text.includes('leo') ||
+          text.includes('extraction') ||
+          text.includes('squid') ||
+          text.includes('baahubali') ||
+          text.includes('war') ||
+          text.includes('fighter') ||
+          text.includes('kill')
+        );
+      });
+    } else if (activeFilter === 'devotional') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
+        return (
+          text.includes('ram') ||
+          text.includes('ramayana') ||
+          text.includes('deva') ||
+          text.includes('shiva') ||
+          text.includes('brahmastra') ||
+          text.includes('bhakti') ||
+          text.includes('devotional') ||
+          text.includes('spiritual') ||
+          text.includes('chalisa')
+        );
+      });
+    } else if (activeFilter === 'arijit') {
+      list = list.filter((i) => {
+        const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''}`.toLowerCase();
+        return text.includes('arijit');
+      });
     }
 
     if (searchQuery.trim()) {
@@ -298,7 +448,6 @@ export default function ExploreMoreModal({
     if (filteredItems.length > 0) {
       onPlayMovie && onPlayMovie(filteredItems[0]);
     } else {
-
       onPlayMovie &&
         onPlayMovie({
           searchQuery: q,
@@ -317,8 +466,14 @@ export default function ExploreMoreModal({
   const filterChips = [
     { key: 'all', label: isHindi ? 'सभी' : 'All' },
     { key: 'songs', label: isHindi ? 'ट्रेंडिंग गाने' : 'Trending Songs' },
-    { key: 'movies', label: isHindi ? 'फिल्में' : 'Blockbuster Movies' },
+    { key: 'movies', label: isHindi ? 'ब्लॉकबस्टर फिल्में' : 'Blockbuster Movies' },
     { key: 'series', label: isHindi ? 'वेब सीरीज़' : 'Web Series' },
+    { key: 'romantic', label: isHindi ? 'रोमांटिक' : 'Romantic' },
+    { key: 'party', label: isHindi ? 'पार्टी व डांस' : 'Party & Dance' },
+    { key: 'punjabi', label: isHindi ? 'पंजाबी हिट्स' : 'Punjabi Hits' },
+    { key: 'action', label: isHindi ? 'एक्शन व थ्रिलर' : 'Action' },
+    { key: 'devotional', label: isHindi ? 'भक्ति व भजन' : 'Devotional' },
+    { key: 'arijit', label: isHindi ? 'अरिजीत सिंह स्पेशल' : 'Arijit Singh' },
   ];
 
   return (
@@ -538,6 +693,20 @@ export default function ExploreMoreModal({
               >
                 
                 <div className="yt-thumb-wrap">
+                  <span className={`yt-type-pill ${item.type || 'song'}`}>
+                    {item.type === 'movie'
+                      ? isHindi
+                        ? 'फिल्म'
+                        : 'Movie'
+                      : item.type === 'series'
+                      ? isHindi
+                        ? 'सीरीज़'
+                        : 'Series'
+                      : isHindi
+                      ? 'गाना'
+                      : 'Song'}
+                  </span>
+
                   <img
                     src={item.poster}
                     alt={item.title}
@@ -563,9 +732,11 @@ export default function ExploreMoreModal({
                   <div className="yt-channel-avatar">
                     <i
                       className={
-                        item.type === 'song'
-                          ? 'fa-solid fa-music'
-                          : 'fa-solid fa-film'
+                        item.type === 'series'
+                          ? 'fa-solid fa-tv'
+                          : item.type === 'movie'
+                          ? 'fa-solid fa-film'
+                          : 'fa-solid fa-music'
                       }
                     ></i>
                   </div>

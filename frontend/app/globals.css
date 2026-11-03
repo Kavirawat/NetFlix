@@ -3703,6 +3703,40 @@ body.video-player-active::-webkit-scrollbar {
   backdrop-filter: blur(6px);
 }
 
+.yt-type-pill {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(14, 14, 18, 0.82);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.yt-type-pill.movie {
+  background: rgba(229, 9, 20, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.yt-type-pill.series {
+  background: rgba(10, 110, 240, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.yt-type-pill.song {
+  background: rgba(20, 160, 90, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .yt-hover-play {
   position: absolute;
   top: 0;
