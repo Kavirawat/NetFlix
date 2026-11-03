@@ -26,8 +26,21 @@ export default function ExploreMoreModal({
 
   const [displayLimit, setDisplayLimit] = useState(16);
   const [extraLoadedItems, setExtraLoadedItems] = useState([]);
+  const [freshOnRefreshItems, setFreshOnRefreshItems] = useState([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [fetchPageIndex, setFetchPageIndex] = useState(0);
+
+  const shuffleList = (list) => {
+    const array = [...list];
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
+
+  const shuffledBaseSongs = useMemo(() => shuffleList(TRENDING_SONGS), []);
+  const shuffledBaseCatalog = useMemo(() => shuffleList(COMPREHENSIVE_CATALOG), []);
 
   const MORE_TOPICS = [
     'latest bollywood songs 2024',
@@ -37,6 +50,27 @@ export default function ExploreMoreModal({
     'arijit singh hit songs',
     'best web series trailers hindi',
   ];
+
+  useEffect(() => {
+    const FRESH_SEARCH_TOPICS = [
+      'latest bollywood songs 2024 trending',
+      'top trending hindi songs',
+      'new romantic songs bollywood',
+      'viral punjabi songs 2024',
+      'superhit hindi songs',
+      'arijit singh latest songs',
+    ];
+    const q = FRESH_SEARCH_TOPICS[Math.floor(Math.random() * FRESH_SEARCH_TOPICS.length)];
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(q)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.results) && data.results.length > 0) {
+          setFreshOnRefreshItems(shuffleList(data.results));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -76,8 +110,13 @@ export default function ExploreMoreModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.classList.add('explore-modal-active');
+    document.documentElement.classList.add('explore-modal-active');
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -94,7 +133,10 @@ export default function ExploreMoreModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.classList.remove('explore-modal-active');
+      document.documentElement.classList.remove('explore-modal-active');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -136,14 +178,16 @@ export default function ExploreMoreModal({
       });
     };
 
-    TRENDING_SONGS.forEach(addItem);
+    freshOnRefreshItems.forEach(addItem);
 
-    COMPREHENSIVE_CATALOG.forEach(addItem);
+    shuffledBaseSongs.forEach(addItem);
+
+    shuffledBaseCatalog.forEach(addItem);
 
     extraLoadedItems.forEach(addItem);
 
     return uniqueList;
-  }, [extraLoadedItems]);
+  }, [freshOnRefreshItems, shuffledBaseSongs, shuffledBaseCatalog, extraLoadedItems]);
 
   useEffect(() => {
     setDisplayLimit(16);

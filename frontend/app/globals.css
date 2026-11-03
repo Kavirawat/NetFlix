@@ -1,9 +1,21 @@
-* {
+/* ==========================================================================
+   GLOBAL SCROLLBAR REMOVAL - HIDE SCROLLBAR ENTIRE PROJECT WIDE
+   ========================================================================== */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: inherit;
   font-optical-sizing: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 html, body {
@@ -14,8 +26,36 @@ html, body {
   color: #fff;
   overflow-x: hidden;
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+html.explore-modal-active,
+body.explore-modal-active,
+html.video-player-active,
+body.video-player-active {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.explore-modal-active::-webkit-scrollbar,
+body.explore-modal-active::-webkit-scrollbar,
+html.video-player-active::-webkit-scrollbar,
+body.video-player-active::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 header {
@@ -1753,11 +1793,9 @@ body.video-player-active::-webkit-scrollbar {
 }
 
 .search-results-list::-webkit-scrollbar {
-  width: 6px;
-}
-.search-results-list::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .search-result-item {
@@ -3285,12 +3323,9 @@ body.video-player-active::-webkit-scrollbar {
 }
 
 .yt-submenu-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.yt-submenu-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 5px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .yt-submenu-row {
@@ -3432,8 +3467,10 @@ body.video-player-active::-webkit-scrollbar {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(8, 8, 12, 0.94);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
@@ -3447,10 +3484,10 @@ body.video-player-active::-webkit-scrollbar {
 }
 
 .youtube-explore-container {
-  width: 100vw;
-  max-width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
   background: linear-gradient(135deg, rgba(16, 16, 22, 0.94) 0%, rgba(10, 10, 14, 0.98) 100%);
   backdrop-filter: blur(36px) saturate(200%);
   -webkit-backdrop-filter: blur(36px) saturate(200%);
@@ -3570,7 +3607,9 @@ body.video-player-active::-webkit-scrollbar {
 
 .yt-video-grid-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 2rem 3rem 4rem 3rem;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
