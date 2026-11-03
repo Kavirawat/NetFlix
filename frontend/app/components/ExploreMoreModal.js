@@ -5,6 +5,19 @@ import { COMPREHENSIVE_CATALOG } from '../data/catalog';
 import { TRENDING_SONGS } from '../data/songs';
 import { getBackendUrl } from '../utils/apiConfig';
 
+const CATEGORY_TOPICS = {
+  all: ['latest bollywood songs 2024', 'blockbuster movie trailers hindi', 'trending web series trailer hindi'],
+  songs: ['latest bollywood songs 2024', 'top trending hindi songs', 'arijit singh hit songs'],
+  movies: ['blockbuster bollywood movies trailer', 'latest action movie trailers hindi', 'south hindi dubbed movies trailer'],
+  series: ['top trending web series hindi', 'netflix series trailer hindi', 'best crime thriller web series'],
+  romantic: ['romantic hindi songs 2024', 'arijit singh love songs', 'best bollywood romantic hits'],
+  party: ['party dance songs bollywood', 'club party tracks hindi', 'punjabi party dance songs'],
+  punjabi: ['punjabi viral songs 2024', 'karan aujla hit songs', 'diljit dosanjh top tracks'],
+  action: ['action movie trailers hindi', 'south action trailers hindi dubbed', 'blockbuster thriller trailers'],
+  devotional: ['ram bhajan ramayana songs', 'bhakti geet hindi', 'deva deva shiva devotional'],
+  arijit: ['arijit singh best songs', 'arijit singh live acoustic', 'arijit singh latest romantic hits'],
+};
+
 export default function ExploreMoreModal({
   isOpen,
   onClose,
@@ -30,7 +43,9 @@ export default function ExploreMoreModal({
   const [extraLoadedItems, setExtraLoadedItems] = useState([]);
   const [freshOnRefreshItems, setFreshOnRefreshItems] = useState([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [fetchPageIndex, setFetchPageIndex] = useState(0);
+  const [exhaustedFilters, setExhaustedFilters] = useState({});
+  const fetchPageIndexRef = useRef({});
+  const filterAttemptsRef = useRef({});
 
   const shuffleList = (list) => {
     const array = [...list];
@@ -49,19 +64,6 @@ export default function ExploreMoreModal({
     setBaseSongs(shuffleList(TRENDING_SONGS));
     setBaseCatalog(shuffleList(COMPREHENSIVE_CATALOG));
   }, []);
-
-  const CATEGORY_TOPICS = {
-    all: ['latest bollywood songs 2024', 'blockbuster movie trailers hindi', 'trending web series trailer hindi'],
-    songs: ['latest bollywood songs 2024', 'top trending hindi songs', 'arijit singh hit songs'],
-    movies: ['blockbuster bollywood movies trailer', 'latest action movie trailers hindi', 'south hindi dubbed movies trailer'],
-    series: ['top trending web series hindi', 'netflix series trailer hindi', 'best crime thriller web series'],
-    romantic: ['romantic hindi songs 2024', 'arijit singh love songs', 'best bollywood romantic hits'],
-    party: ['party dance songs bollywood', 'club party tracks hindi', 'punjabi party dance songs'],
-    punjabi: ['punjabi viral songs 2024', 'karan aujla hit songs', 'diljit dosanjh top tracks'],
-    action: ['action movie trailers hindi', 'south action trailers hindi dubbed', 'blockbuster thriller trailers'],
-    devotional: ['ram bhajan ramayana songs', 'bhakti geet hindi', 'deva deva shiva devotional'],
-    arijit: ['arijit singh best songs', 'arijit singh live acoustic', 'arijit singh latest romantic hits'],
-  };
 
   useEffect(() => {
     const FRESH_SEARCH_TOPICS = [
@@ -171,20 +173,21 @@ export default function ExploreMoreModal({
 
     const addItem = (item) => {
       if (!item) return;
+      const ytId = item.trailerYoutubeId || (typeof item.id === 'string' ? item.id.replace(/^yt-/, '') : item.id);
+      const safePoster = item.poster || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '/logo1.jpg');
       const normTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const ytId = item.trailerYoutubeId;
-      const poster = item.poster;
 
       if (ytId && seenYoutubeIds.has(ytId)) return;
-      if (poster && seenPosters.has(poster)) return;
+      if (seenPosters.has(safePoster)) return;
       if (normTitle && seenTitles.has(normTitle)) return;
 
       if (ytId) seenYoutubeIds.add(ytId);
-      if (poster) seenPosters.add(poster);
+      seenPosters.add(safePoster);
       if (normTitle) seenTitles.add(normTitle);
 
       uniqueList.push({
         ...item,
+        poster: safePoster,
         type: item.type || 'song',
         duration: item.duration || (item.type === 'song' ? '3:45' : '2h 15m'),
         views: item.views || `${((uniqueList.length * 7 + 23) % 75) + 20}M views`,
@@ -214,7 +217,8 @@ export default function ExploreMoreModal({
       else otherPool.push(item);
     });
 
-    // Create a rich, rhythmic mix: 1 Song, 1 Movie, 1 Song, 1 Web Series...
+    // Create a perfectly balanced mix: 1 Song, 1 Movie, 1 Web Series, 1 Song, 1 Movie...
+    // This ensures every screen and row has Songs, Blockbuster Movies and Web Series genuinely mixed together!
     const mixedStream = [];
     let s = 0, m = 0, sr = 0, f = 0, e = 0;
     const totalItems =
@@ -232,14 +236,14 @@ export default function ExploreMoreModal({
         f < freshOnRefreshItems.length ||
         e < extraLoadedItems.length)
     ) {
+      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
+      if (m < moviesPool.length) mixedStream.push(moviesPool[m++]);
+      if (sr < seriesPool.length) mixedStream.push(seriesPool[sr++]);
       if (f < freshOnRefreshItems.length) mixedStream.push(freshOnRefreshItems[f++]);
       if (s < songsPool.length) mixedStream.push(songsPool[s++]);
       if (m < moviesPool.length) mixedStream.push(moviesPool[m++]);
-      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
-      if (sr < seriesPool.length) mixedStream.push(seriesPool[sr++]);
       if (e < extraLoadedItems.length) mixedStream.push(extraLoadedItems[e++]);
-      if (m < moviesPool.length) mixedStream.push(moviesPool[m++]);
-      if (s < songsPool.length) mixedStream.push(songsPool[s++]);
+      if (sr < seriesPool.length) mixedStream.push(seriesPool[sr++]);
     }
 
     otherPool.forEach((item) => mixedStream.push(item));
@@ -247,66 +251,6 @@ export default function ExploreMoreModal({
 
     return uniqueList;
   }, [freshOnRefreshItems, baseSongs, baseCatalog, extraLoadedItems]);
-
-  useEffect(() => {
-    setDisplayLimit(16);
-    if (gridScrollRef.current) {
-      gridScrollRef.current.scrollTop = 0;
-    }
-  }, [activeFilter, searchQuery]);
-
-  const fetchMoreFromYouTube = useCallback(() => {
-    if (isLoadingMore) return;
-    setIsLoadingMore(true);
-    const topicsForFilter = CATEGORY_TOPICS[activeFilter] || CATEGORY_TOPICS.all;
-    const topic = topicsForFilter[fetchPageIndex % topicsForFilter.length];
-    setFetchPageIndex((prev) => prev + 1);
-
-    const backendUrl = getBackendUrl();
-    fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(topic)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.results) && data.results.length > 0) {
-          setExtraLoadedItems((prev) => {
-            const seen = new Set(prev.map((i) => i.trailerYoutubeId || i.id));
-            const newOnes = data.results.filter((i) => !seen.has(i.trailerYoutubeId || i.id));
-            return [...prev, ...newOnes];
-          });
-          setDisplayLimit((prev) => prev + 12);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingMore(false));
-  }, [isLoadingMore, fetchPageIndex, activeFilter, CATEGORY_TOPICS]);
-
-  const handleGridScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 650) {
-      if (displayLimit < filteredItems.length) {
-        setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length));
-      } else if (!isLoadingMore) {
-        fetchMoreFromYouTube();
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0] && entries[0].isIntersecting) {
-          if (displayLimit < filteredItems.length) {
-            setDisplayLimit((prev) => Math.min(prev + 12, filteredItems.length));
-          } else if (!isLoadingMore) {
-            fetchMoreFromYouTube();
-          }
-        }
-      },
-      { root: gridScrollRef.current, rootMargin: '300px' }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [displayLimit, filteredItems.length, isLoadingMore, fetchMoreFromYouTube]);
 
   const filteredItems = useMemo(() => {
     let list = allMediaItems;
@@ -319,6 +263,7 @@ export default function ExploreMoreModal({
       list = list.filter((i) => i.type === 'series');
     } else if (activeFilter === 'romantic') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'romantic') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
         return (
           text.includes('romantic') ||
@@ -336,11 +281,14 @@ export default function ExploreMoreModal({
           text.includes('o maahi') ||
           text.includes('jaane jaan') ||
           text.includes('pehle bhi main') ||
-          text.includes('bad newz')
+          text.includes('bad newz') ||
+          text.includes('heeramandi') ||
+          text.includes('lust stories')
         );
       });
     } else if (activeFilter === 'party') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'party') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
         return (
           text.includes('party') ||
@@ -355,11 +303,13 @@ export default function ExploreMoreModal({
           text.includes('taras') ||
           text.includes('illuminati') ||
           text.includes('dhol') ||
-          text.includes('groove')
+          text.includes('groove') ||
+          text.includes('crew')
         );
       });
     } else if (activeFilter === 'punjabi') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'punjabi') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
         return (
           text.includes('punjabi') ||
@@ -373,11 +323,13 @@ export default function ExploreMoreModal({
           text.includes('moose') ||
           text.includes('lover') ||
           text.includes('softly') ||
-          text.includes('ammy')
+          text.includes('ammy') ||
+          text.includes('tauba')
         );
       });
     } else if (activeFilter === 'action') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'action') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
         return (
           text.includes('action') ||
@@ -391,11 +343,27 @@ export default function ExploreMoreModal({
           text.includes('baahubali') ||
           text.includes('war') ||
           text.includes('fighter') ||
-          text.includes('kill')
+          text.includes('kill') ||
+          text.includes('pathaan') ||
+          text.includes('kalki') ||
+          text.includes('kgf') ||
+          text.includes('pushpa') ||
+          text.includes('rrr') ||
+          text.includes('money heist') ||
+          text.includes('aavesham') ||
+          text.includes('kantara') ||
+          text.includes('drishyam') ||
+          text.includes('shaitaan') ||
+          text.includes('guardians') ||
+          text.includes('breaking bad') ||
+          text.includes('dark') ||
+          text.includes('mission raniganj') ||
+          text.includes('gangubai')
         );
       });
     } else if (activeFilter === 'devotional') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'devotional') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''} ${i.overview || ''}`.toLowerCase();
         return (
           text.includes('ram') ||
@@ -406,11 +374,14 @@ export default function ExploreMoreModal({
           text.includes('bhakti') ||
           text.includes('devotional') ||
           text.includes('spiritual') ||
-          text.includes('chalisa')
+          text.includes('chalisa') ||
+          text.includes('omg 2') ||
+          text.includes('kantara')
         );
       });
     } else if (activeFilter === 'arijit') {
       list = list.filter((i) => {
+        if (i.categoryTag === 'arijit') return true;
         const text = `${i.title || ''} ${i.artist || ''} ${i.album || ''}`.toLowerCase();
         return text.includes('arijit');
       });
@@ -439,6 +410,111 @@ export default function ExploreMoreModal({
     }
     return list;
   }, [allMediaItems, activeFilter, searchQuery, liveResults]);
+
+  useEffect(() => {
+    setDisplayLimit(16);
+    if (gridScrollRef.current) {
+      gridScrollRef.current.scrollTop = 0;
+    }
+  }, [activeFilter, searchQuery]);
+
+  const displayLimitRef = useRef(displayLimit);
+  displayLimitRef.current = displayLimit;
+  const filteredLengthRef = useRef(filteredItems.length);
+  filteredLengthRef.current = filteredItems.length;
+  const isLoadingMoreRef = useRef(isLoadingMore);
+  isLoadingMoreRef.current = isLoadingMore;
+  const activeFilterRef = useRef(activeFilter);
+  activeFilterRef.current = activeFilter;
+  const exhaustedFiltersRef = useRef(exhaustedFilters);
+  exhaustedFiltersRef.current = exhaustedFilters;
+
+  const fetchMoreFromYouTube = useCallback(() => {
+    const curFilter = activeFilterRef.current;
+    if (isLoadingMoreRef.current || exhaustedFiltersRef.current[curFilter]) return;
+
+    const attempts = filterAttemptsRef.current[curFilter] || 0;
+    if (attempts >= 2) {
+      setExhaustedFilters((prev) => ({ ...prev, [curFilter]: true }));
+      return;
+    }
+    filterAttemptsRef.current[curFilter] = attempts + 1;
+
+    setIsLoadingMore(true);
+    const topicsForFilter = CATEGORY_TOPICS[curFilter] || CATEGORY_TOPICS.all;
+    const pageIdx = fetchPageIndexRef.current[curFilter] || 0;
+    fetchPageIndexRef.current[curFilter] = pageIdx + 1;
+    const topic = topicsForFilter[pageIdx % topicsForFilter.length];
+
+    const backendUrl = getBackendUrl();
+    fetch(`${backendUrl}/api/movies/youtube-search?q=${encodeURIComponent(topic)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.results) && data.results.length > 0) {
+          const tagged = data.results.map((i) => ({
+            ...i,
+            categoryTag: curFilter,
+            type:
+              curFilter === 'songs'
+                ? 'song'
+                : curFilter === 'series'
+                ? 'series'
+                : curFilter === 'movies'
+                ? 'movie'
+                : i.type || 'movie',
+          }));
+
+          setExtraLoadedItems((prev) => {
+            const seen = new Set(prev.map((i) => i.trailerYoutubeId || i.id));
+            const newOnes = tagged.filter((i) => !seen.has(i.trailerYoutubeId || i.id));
+            return [...prev, ...newOnes];
+          });
+          setDisplayLimit((prev) => prev + 12);
+        } else {
+          setExhaustedFilters((prev) => ({ ...prev, [curFilter]: true }));
+        }
+      })
+      .catch(() => {
+        setExhaustedFilters((prev) => ({ ...prev, [curFilter]: true }));
+      })
+      .finally(() => {
+        setIsLoadingMore(false);
+      });
+  }, []);
+
+  const handleGridScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 400) {
+      if (displayLimitRef.current < filteredLengthRef.current) {
+        setDisplayLimit((prev) => Math.min(prev + 12, filteredLengthRef.current));
+      } else if (!isLoadingMoreRef.current && !exhaustedFiltersRef.current[activeFilterRef.current]) {
+        fetchMoreFromYouTube();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0] && entries[0].isIntersecting) {
+          if (displayLimitRef.current < filteredLengthRef.current) {
+            setDisplayLimit((prev) => Math.min(prev + 12, filteredLengthRef.current));
+          } else if (
+            !isLoadingMoreRef.current &&
+            !exhaustedFiltersRef.current[activeFilterRef.current] &&
+            gridScrollRef.current &&
+            gridScrollRef.current.scrollTop > 40
+          ) {
+            fetchMoreFromYouTube();
+          }
+        }
+      },
+      { root: gridScrollRef.current, rootMargin: '100px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [isOpen, activeFilter, fetchMoreFromYouTube]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -708,12 +784,27 @@ export default function ExploreMoreModal({
                   </span>
 
                   <img
-                    src={item.poster}
+                    src={
+                      item.poster ||
+                      (item.trailerYoutubeId
+                        ? `https://img.youtube.com/vi/${item.trailerYoutubeId}/hqdefault.jpg`
+                        : '/logo1.jpg')
+                    }
                     alt={item.title}
                     className="yt-thumb-img"
                     loading="lazy"
                     onError={(e) => {
-                      e.target.src = '/logo1.jpg';
+                      const ytFallback =
+                        item.trailerYoutubeId ||
+                        (typeof item.id === 'string' ? item.id.replace(/^yt-/, '') : null);
+                      if (ytFallback && !e.currentTarget.src.includes(`vi/${ytFallback}/`)) {
+                        e.currentTarget.src = `https://img.youtube.com/vi/${ytFallback}/hqdefault.jpg`;
+                      } else if (!e.currentTarget.src.includes('logo1.jpg')) {
+                        e.currentTarget.src = '/logo1.jpg';
+                      } else {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/custom-logo-clean-full.jpg';
+                      }
                     }}
                   />
                   
@@ -761,7 +852,7 @@ export default function ExploreMoreModal({
           </div>
 
           {displayLimit < filteredItems.length && (
-            <div className="load-more-sentinel" ref={sentinelRef}>
+            <div className="load-more-sentinel">
               <button
                 type="button"
                 className="load-more-btn"
@@ -778,7 +869,13 @@ export default function ExploreMoreModal({
           {isLoadingMore && (
             <div className="infinite-scroll-loader">
               <i className="fa-solid fa-circle-notch fa-spin"></i>
-              <span>{isHindi ? 'YouTube से और वीडियो लोड हो रहे हैं...' : 'Loading more videos from YouTube...'}</span>
+              <span>{isHindi ? 'और वीडियो लोड हो रहे हैं...' : 'Loading more videos...'}</span>
+            </div>
+          )}
+
+          {!isLoadingMore && filteredItems.length > 0 && displayLimit >= filteredItems.length && (
+            <div className="all-videos-loaded-badge">
+              <span>{isHindi ? '✓ सभी उपलब्ध वीडियो लोड हो चुके हैं' : '✓ All available videos loaded'}</span>
             </div>
           )}
 

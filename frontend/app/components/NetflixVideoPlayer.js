@@ -31,17 +31,48 @@ const VERIFIED_TRAILERS = {
   'omg 2': { id: 'Y6ZKXqM7HNQ', title: 'OMG 2', year: '2023', match: '94% Match', age: 'A (18+)', rating: '7.7', duration: '2h 36m' },
   'lust stories': { id: '4aanxonXWiM', title: 'Lust Stories 2', year: '2023', match: '89% Match', age: 'A (18+)', rating: '6.8', duration: '2h 12m' },
   stranger: { id: 'b9EkMc79ZSU', title: 'Stranger Things', year: '2024', match: '98% Match', age: 'U/A 16+', rating: '8.6', duration: '4 Seasons' },
-  guardians: { id: '2XqQMVx86Lg', title: 'Guardians of the Galaxy: Vol. 2', year: '2017', match: '88% Match', age: 'PG-13', rating: '7.6', duration: '136 min' },
+  guardians: { id: 'wUn05hdkhjM', title: 'Guardians of the Galaxy: Vol. 2', year: '2017', match: '88% Match', age: 'PG-13', rating: '7.6', duration: '136 min' },
   squid: { id: 'oqxAJKy0ii4', title: 'Squid Game', year: '2024', match: '99% Match', age: 'A (18+)', rating: '7.9', duration: 'Season 2' },
   extraction: { id: 'Y274jZs5s7s', title: 'Extraction II', year: '2023', match: '98% Match', age: 'A (18+)', rating: '7.0', duration: '2h 02m' },
-  wednesday: { id: 'Di310BC8urj', title: 'Wednesday', year: '2023', match: '96% Match', age: 'U/A 13+', rating: '8.0', duration: 'Season 1' },
+  wednesday: { id: 'Di310WS8zLk', title: 'Wednesday', year: '2023', match: '96% Match', age: 'U/A 13+', rating: '8.0', duration: 'Season 1' },
 };
 
 function resolveVideoMeta(item) {
   if (!item) return VERIFIED_TRAILERS.animal;
 
+  if (item.trailerYoutubeId) {
+    return {
+      id: item.trailerYoutubeId,
+      trailerYoutubeId: item.trailerYoutubeId,
+      title: item.title,
+      year: item.year || item.releaseYear || '2023',
+      age: item.ageRating || 'U/A 16+',
+      rating: item.rating || '8.0',
+      duration: item.duration || '2h 15m',
+      overview: item.overview,
+      quality: item.quality || '4K Ultra HD',
+    };
+  }
+
+  const cleanId = (typeof item.id === 'string' ? item.id.replace(/^yt-/, '') : item.id);
+  if (cleanId && cleanId.length === 11) {
+    return {
+      id: cleanId,
+      trailerYoutubeId: cleanId,
+      title: item.title || 'Now Playing',
+      year: item.year || item.releaseYear || '2024',
+      age: item.ageRating || 'U/A 16+',
+      rating: item.rating || '8.0',
+      duration: item.duration || 'Full Stream',
+      overview: item.overview,
+      quality: item.quality || '4K Ultra HD',
+    };
+  }
+
   if (item.searchQuery) {
     return {
+      id: 'LK7-_dgAVQE',
+      trailerYoutubeId: 'LK7-_dgAVQE',
       searchQuery: item.searchQuery,
       title: item.title || item.searchQuery,
       year: item.year || '2024',
@@ -50,19 +81,6 @@ function resolveVideoMeta(item) {
       duration: item.duration || 'Live Stream',
       overview: item.overview || `Live stream of ${item.title || item.searchQuery} in master definition.`,
       quality: item.quality || 'Auto',
-    };
-  }
-
-  if (item.trailerYoutubeId) {
-    return {
-      id: item.trailerYoutubeId,
-      title: item.title,
-      year: item.year || item.releaseYear || '2023',
-      age: item.ageRating || 'U/A 16+',
-      rating: item.rating || '8.0',
-      duration: item.duration || '2h 15m',
-      overview: item.overview,
-      quality: item.quality || '4K Ultra HD',
     };
   }
 
@@ -79,7 +97,7 @@ function resolveVideoMeta(item) {
   }
 
   return {
-    id: 'DydmpkhEvAg',
+    id: '8FkLRUJj-o0',
     title: item.title || 'Now Playing',
     year: item.year || '2023',
     age: item.ageRating || 'A (18+)',
@@ -114,11 +132,11 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
 
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(210);
   const [volume, setVolume] = useState(100);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [settingsView, setSettingsView] = useState('main');
   const [ambientMode, setAmbientMode] = useState(true);
@@ -207,15 +225,12 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const sendCommand = useCallback((func, args = []) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
       try {
-        iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: func,
-            args: args,
-          }),
-          '*'
-        );
+        const payload = JSON.stringify({
+          event: 'command',
+          func: func,
+          args: Array.isArray(args) ? args : [args],
+        });
+        iframeRef.current.contentWindow.postMessage(payload, '*');
       } catch (e) {}
     }
   }, []);
@@ -315,6 +330,11 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
       triggerCenterFlash('pause');
     } else {
       sendCommand('playVideo');
+      if (isMuted) {
+        sendCommand('unMute');
+        sendCommand('setVolume', [volume || 80]);
+        setIsMuted(false);
+      }
       setIsPlaying(true);
       triggerCenterFlash('play');
     }
@@ -334,7 +354,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     if (isMuted) {
       sendCommand('unMute');
       sendCommand('setVolume', [volume || 80]);
+      sendCommand('playVideo');
       setIsMuted(false);
+      setIsPlaying(true);
     } else {
       sendCommand('mute');
       setIsMuted(true);
@@ -456,10 +478,14 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
             setDuration(data.info.duration);
           }
           if (typeof data.info.playerState === 'number') {
-            if (data.info.playerState === 0) {
+            const st = data.info.playerState;
+            if (st === 0) {
+              setIsPlaying(false);
               startNextVideoCountdown();
-            } else {
-              setIsPlaying(data.info.playerState === 1);
+            } else if (st === 1) {
+              setIsPlaying(true);
+            } else if (st === 2) {
+              setIsPlaying(false);
             }
           }
           if (typeof data.info.muted === 'boolean') {
@@ -681,12 +707,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     return isHi ? '♪ [धुन और संगीत जारी है...] ♪' : '♪ [Music Playing Continuously...] ♪';
   };
 
-  const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || 'DydmpkhEvAg';
-  const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || 'DydmpkhEvAg';
-  const originParam = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-  const embedUrl = resolvedMovie.searchQuery && !resolvedMovie.trailerYoutubeId && !resolvedMovie.id
-    ? `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(resolvedMovie.searchQuery)}&autoplay=1&enablejsapi=1&rel=0&modestbranding=1&controls=0&origin=${encodeURIComponent(originParam)}&cc_load_policy=1&cc_lang_pref=en`
-    : `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&controls=0&iv_load_policy=3&fs=1&origin=${encodeURIComponent(originParam)}&cc_load_policy=1&cc_lang_pref=en`;
+  const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || '8FkLRUJj-o0';
+  const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || '8FkLRUJj-o0';
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&enablejsapi=1&rel=0&playsinline=1`;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -727,6 +750,22 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
         </div>
       </div>
 
+      {/* Tap / Click to Unmute Banner */}
+      {isMuted && (
+        <button
+          type="button"
+          className="player-unmute-banner"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleMute();
+          }}
+          title={language === 'hi' ? 'आवाज़ शुरू करें' : 'Click to Unmute Sound'}
+        >
+          <i className="fa-solid fa-volume-xmark"></i>
+          <span>{language === 'hi' ? 'आवाज़ शुरू करने के लिए क्लिक करें' : 'Click to Unmute Sound'}</span>
+        </button>
+      )}
+
       <div className="player-youtube-wrap">
         <iframe
           ref={iframeRef}
@@ -735,7 +774,10 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
           title={`${resolvedMovie.title} — Official Full Stream`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          scrolling="no"
           className="youtube-player-frame"
+          style={{ width: '100%', height: '100%', border: 'none', overflow: 'hidden' }}
           onLoad={() => {
             if (iframeRef.current && iframeRef.current.contentWindow) {
               try {
@@ -746,21 +788,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
         ></iframe>
       </div>
 
-      <div
-        className="player-touch-interceptor"
-        onClick={(e) => {
-          if (e && e.stopPropagation) e.stopPropagation();
-          togglePlayPause();
-        }}
-      />
-
       {/* Center Big Play / Pause Button */}
       <div
         className={`player-center-control ${showControls || !isPlaying ? 'active' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          togglePlayPause();
-        }}
       >
         <button
           type="button"
@@ -808,7 +838,8 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
               alt={nextUpVideo.title}
               className="next-up-thumb"
               onError={(e) => {
-                e.target.src = '/logo1.jpg';
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/logo1.jpg';
               }}
             />
             <div className="next-up-info">
