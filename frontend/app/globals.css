@@ -4373,25 +4373,29 @@ body.video-player-active::-webkit-scrollbar {
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: rgba(18, 18, 24, 0.78);
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.65);
   color: #ffffff;
   font-size: 2.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.center-play-pause-btn i.fa-play {
+  padding-left: 4px;
 }
 
 .center-play-pause-btn:hover {
-  transform: scale(1.12);
-  background: rgba(229, 9, 20, 0.9);
-  border-color: #e50914;
-  box-shadow: 0 0 38px rgba(229, 9, 20, 0.7);
+  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.55);
+  border-color: #ffffff;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.25);
 }
 
 .center-play-pause-btn:active {
@@ -4399,15 +4403,15 @@ body.video-player-active::-webkit-scrollbar {
 }
 
 .center-play-pause-btn.is-paused {
-  background: rgba(229, 9, 20, 0.85);
-  border-color: rgba(255, 255, 255, 0.65);
-  animation: pulseCenterBtn 2s infinite;
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(255, 255, 255, 0.75);
+  animation: pulseCenterBtn 2.2s infinite ease-in-out;
 }
 
 @keyframes pulseCenterBtn {
-  0% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.65); }
-  70% { box-shadow: 0 0 0 18px rgba(229, 9, 20, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+  70% { box-shadow: 0 0 0 16px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
 }
 
 .center-flash-ripple {
