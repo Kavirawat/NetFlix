@@ -905,11 +905,6 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
           <h2>{resolvedMovie.title}</h2>
           <span className="player-badge">{resolvedMovie.year || resolvedMovie.releaseYear || '2024'}</span>
           <span className="player-badge">{resolvedMovie.age || resolvedMovie.ageRating || 'U/A 16+'}</span>
-          {resolvedMovie.rating && (
-            <span className="player-badge" style={{ color: '#f5c518', borderColor: '#f5c518' }}>
-              <i className="fa-solid fa-star"></i> {resolvedMovie.rating} IMDb
-            </span>
-          )}
         </div>
       </div>
 
