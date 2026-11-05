@@ -1,9 +1,32 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { TRENDING_SONGS } from '../data/songs';
 import { COMPREHENSIVE_CATALOG } from '../data/catalog';
 import { getBackendUrl } from '../utils/apiConfig';
+
+const YOUTUBE_QUALITIES = [
+  { ytCode: 'highres', label: '2160p (4K)', tag: '4K', resolution: '2160p', altCodes: ['hd2160', 'highres'] },
+  { ytCode: 'hd1440', label: '1440p (2K)', tag: 'HD', resolution: '1440p', altCodes: ['hd1440'] },
+  { ytCode: 'hd1080', label: '1080p (HD)', tag: 'HD', resolution: '1080p', altCodes: ['hd1080'] },
+  { ytCode: 'hd720', label: '720p', tag: '', resolution: '720p', altCodes: ['hd720'] },
+  { ytCode: 'large', label: '480p', tag: '', resolution: '480p', altCodes: ['large'] },
+  { ytCode: 'medium', label: '360p', tag: '', resolution: '360p', altCodes: ['medium'] },
+  { ytCode: 'small', label: '240p', tag: '', resolution: '240p', altCodes: ['small'] },
+  { ytCode: 'tiny', label: '144p', tag: '', resolution: '144p', altCodes: ['tiny'] },
+];
+
+const CODE_TO_LABEL_MAP = {
+  highres: '2160p (4K)',
+  hd2160: '2160p (4K)',
+  hd1440: '1440p (2K)',
+  hd1080: '1080p (HD)',
+  hd720: '720p',
+  large: '480p',
+  medium: '360p',
+  small: '240p',
+  tiny: '144p',
+};
 
 function getNextVideo(current) {
   const allVideos = [...TRENDING_SONGS, ...COMPREHENSIVE_CATALOG];
@@ -144,7 +167,10 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const [subtitlesLanguage, setSubtitlesLanguage] = useState('Off');
   const [sleepTimer, setSleepTimer] = useState('Off');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [videoQuality, setVideoQuality] = useState('Auto (720p)');
+  const [isAutoQuality, setIsAutoQuality] = useState(true);
+  const [currentQualityLabel, setCurrentQualityLabel] = useState('1080p (HD)');
+  const [selectedQualityCode, setSelectedQualityCode] = useState('auto');
+  const [availableQualityLevels, setAvailableQualityLevels] = useState([]);
   const [ccActive, setCcActive] = useState(false);
   const [ccToast, setCcToast] = useState('');
   const ccToastTimeoutRef = useRef(null);
@@ -239,6 +265,14 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     const initialMeta = resolveVideoMeta(movie);
     setResolvedMovie(initialMeta);
 
+    setIsAutoQuality(true);
+    setSelectedQualityCode('auto');
+    setAvailableQualityLevels([]);
+    const defaultLabel = (initialMeta?.quality && (initialMeta.quality.includes('4K') || initialMeta.quality.includes('UHD')))
+      ? '1080p (HD)'
+      : '720p';
+    setCurrentQualityLabel(defaultLabel);
+
     const lookupParam = movie?.imdbId || movie?.id || movie?.title;
     if (lookupParam && !movie?.trailerYoutubeId && !movie?.searchQuery) {
       const backendUrl = getBackendUrl();
@@ -256,6 +290,19 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
         .catch(() => {});
     }
   }, [movie]);
+
+  const displayedQualityOptions = useMemo(() => {
+    if (availableQualityLevels.length > 0) {
+      const supported = YOUTUBE_QUALITIES.filter((item) =>
+        item.altCodes.some((code) => availableQualityLevels.includes(code))
+      );
+      if (supported.length > 0) return supported;
+    }
+    const is4K = !!(resolvedMovie?.quality && (resolvedMovie.quality.includes('4K') || resolvedMovie.quality.includes('UHD')));
+    return is4K
+      ? YOUTUBE_QUALITIES
+      : YOUTUBE_QUALITIES.filter((q) => q.ytCode !== 'highres' && q.ytCode !== 'hd1440');
+  }, [availableQualityLevels, resolvedMovie?.quality]);
 
   const handleUserActivity = () => {
     setShowControls(true);
@@ -386,23 +433,21 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     handleUserActivity();
   };
 
-  const handleQualityChange = (q) => {
-    setVideoQuality(q);
-    const ytQualityMap = {
-      'Auto (720p)': 'default',
-      'Auto': 'default',
-      '2160p (4K)': 'highres',
-      '1440p': 'hd1440',
-      '1080p': 'hd1080',
-      '720p': 'hd720',
-      '480p': 'large',
-      '360p': 'medium',
-      '240p': 'small',
-      '144p': 'tiny',
-    };
-    const ytQ = ytQualityMap[q] || 'default';
-    sendCommand('setPlaybackQuality', [ytQ]);
-    sendCommand('setPlaybackQualityRange', [ytQ, ytQ]);
+  const handleQualityChange = (qCode, qLabel) => {
+    if (qCode === 'auto') {
+      setIsAutoQuality(true);
+      setSelectedQualityCode('auto');
+      sendCommand('setPlaybackQuality', ['default']);
+      sendCommand('setPlaybackQualityRange', ['default', 'default']);
+    } else {
+      setIsAutoQuality(false);
+      setSelectedQualityCode(qCode);
+      if (qLabel) {
+        setCurrentQualityLabel(qLabel);
+      }
+      sendCommand('setPlaybackQuality', [qCode]);
+      sendCommand('setPlaybackQualityRange', [qCode, qCode]);
+    }
     setSettingsView('main');
     setShowSettingsMenu(false);
     handleUserActivity();
@@ -490,6 +535,18 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
           }
           if (typeof data.info.muted === 'boolean') {
             setIsMuted(data.info.muted);
+          }
+          if (typeof data.info.playbackQuality === 'string' && data.info.playbackQuality !== 'unknown') {
+            const mapped = CODE_TO_LABEL_MAP[data.info.playbackQuality];
+            if (mapped) {
+              setCurrentQualityLabel(mapped);
+            }
+          }
+          if (Array.isArray(data.info.availableQualityLevels) && data.info.availableQualityLevels.length > 0) {
+            const filtered = data.info.availableQualityLevels.filter((q) => q && q !== 'auto' && q !== 'unknown');
+            if (filtered.length > 0) {
+              setAvailableQualityLevels(filtered);
+            }
           }
         }
       } catch (err) {
@@ -1080,7 +1137,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                           <span className="yt-menu-label">Quality</span>
                         </div>
                         <div className="yt-row-right">
-                          <span className="yt-item-badge">{videoQuality}</span>
+                          <span className="yt-item-badge">
+                            {isAutoQuality ? `Auto (${currentQualityLabel})` : currentQualityLabel}
+                          </span>
                           <i className="fa-solid fa-chevron-right yt-arrow"></i>
                         </div>
                       </div>
@@ -1095,28 +1154,32 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                       </div>
                       <div className="yt-submenu-divider"></div>
                       <div className="yt-submenu-scroll custom-scrollbar">
-                        {[
-                          'Auto (720p)',
-                          '2160p (4K)',
-                          '1440p',
-                          '1080p',
-                          '720p',
-                          '480p',
-                          '360p',
-                          '240p',
-                          '144p',
-                        ].map((q) => {
-                          const isActive = videoQuality === q || (q === 'Auto (720p)' && (videoQuality === 'Auto' || videoQuality === 'Auto (720p)'));
+                        {/* Auto Option */}
+                        <div
+                          className={`yt-submenu-row ${isAutoQuality ? 'active' : ''}`}
+                          onClick={() => handleQualityChange('auto')}
+                        >
+                          <span className="yt-check-box">
+                            {isAutoQuality && <i className="fa-solid fa-check"></i>}
+                          </span>
+                          <span className="yt-submenu-label">
+                            Auto {currentQualityLabel ? `(${currentQualityLabel})` : ''}
+                          </span>
+                        </div>
+
+                        {/* Available Qualities in Exact YouTube Sequence */}
+                        {displayedQualityOptions.map((opt) => {
+                          const isActive = !isAutoQuality && selectedQualityCode === opt.ytCode;
                           return (
                             <div
-                              key={q}
+                              key={opt.ytCode}
                               className={`yt-submenu-row ${isActive ? 'active' : ''}`}
-                              onClick={() => handleQualityChange(q)}
+                              onClick={() => handleQualityChange(opt.ytCode, opt.label)}
                             >
                               <span className="yt-check-box">
                                 {isActive && <i className="fa-solid fa-check"></i>}
                               </span>
-                              <span className="yt-submenu-label">{q}</span>
+                              <span className="yt-submenu-label">{opt.label}</span>
                             </div>
                           );
                         })}

@@ -769,20 +769,6 @@ export default function ExploreMoreModal({
               >
                 
                 <div className="yt-thumb-wrap">
-                  <span className={`yt-type-pill ${item.type || 'song'}`}>
-                    {item.type === 'movie'
-                      ? isHindi
-                        ? 'फिल्म'
-                        : 'Movie'
-                      : item.type === 'series'
-                      ? isHindi
-                        ? 'सीरीज़'
-                        : 'Series'
-                      : isHindi
-                      ? 'गाना'
-                      : 'Song'}
-                  </span>
-
                   <img
                     src={
                       item.poster ||
