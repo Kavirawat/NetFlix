@@ -1455,7 +1455,8 @@ body.video-player-active::-webkit-scrollbar {
   height: 100%;
   z-index: 15;
   background: transparent;
-  pointer-events: none !important;
+  cursor: pointer;
+  pointer-events: auto !important;
   -webkit-tap-highlight-color: transparent;
 }
 

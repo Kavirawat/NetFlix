@@ -528,7 +528,7 @@ export default function ExploreMoreModal({
         onPlayMovie({
           searchQuery: q,
           title: q,
-          quality: '4K Ultra HD',
+          quality: /\b(4k|2160p|uhd)\b/i.test(q) ? '4K Ultra HD' : '1080p Full HD',
           type: 'stream',
           year: '2024',
         });
@@ -718,24 +718,25 @@ export default function ExploreMoreModal({
           <div
             className="search-stream-action-banner"
             onClick={() => {
+              const q = searchQuery.trim();
               onPlayMovie &&
                 onPlayMovie({
-                  searchQuery: searchQuery.trim(),
-                  title: searchQuery.trim(),
-                  quality: '4K Ultra HD',
+                  searchQuery: q,
+                  title: q,
+                  quality: /\b(4k|2160p|uhd)\b/i.test(q) ? '4K Ultra HD' : '1080p Full HD',
                   type: 'stream',
                   year: '2024',
                 });
             }}
-            title={`Play "${searchQuery.trim()}" in 4K`}
+            title={`Play "${searchQuery.trim()}"`}
           >
             <div className="stream-action-left">
               <i className="fa-solid fa-circle-play stream-action-icon"></i>
               <div className="stream-action-text">
                 <strong>
                   {isHindi
-                    ? `"${searchQuery.trim()}" को 4K Ultra HD में तुरंत स्ट्रीम करें`
-                    : `Stream "${searchQuery.trim()}" live in 4K Ultra HD`}
+                    ? `"${searchQuery.trim()}" को तुरंत ऑनलाइन स्ट्रीम करें`
+                    : `Stream "${searchQuery.trim()}" live stream`}
                 </strong>
                 <span>
                   {isHindi
@@ -748,7 +749,7 @@ export default function ExploreMoreModal({
                 </span>
               </div>
             </div>
-            <span className="stream-action-tag">LIVE 4K</span>
+            <span className="stream-action-tag">LIVE STREAM</span>
           </div>
         )}
 

@@ -63,6 +63,13 @@ const VERIFIED_TRAILERS = {
 function resolveVideoMeta(item) {
   if (!item) return VERIFIED_TRAILERS.animal;
 
+  const isExplicit4K = !!(
+    (item.title && /\b(4k|2160p|uhd)\b/i.test(item.title)) ||
+    (item.overview && /\b(4k|2160p|uhd)\b/i.test(item.overview)) ||
+    (item.searchQuery && /\b(4k|2160p|uhd)\b/i.test(item.searchQuery))
+  );
+  const defaultQuality = isExplicit4K ? '4K Ultra HD' : '1080p Full HD';
+
   if (item.trailerYoutubeId) {
     return {
       id: item.trailerYoutubeId,
@@ -73,7 +80,7 @@ function resolveVideoMeta(item) {
       rating: item.rating || '8.0',
       duration: item.duration || '2h 15m',
       overview: item.overview,
-      quality: item.quality || '4K Ultra HD',
+      quality: item.quality || defaultQuality,
     };
   }
 
@@ -88,7 +95,7 @@ function resolveVideoMeta(item) {
       rating: item.rating || '8.0',
       duration: item.duration || 'Full Stream',
       overview: item.overview,
-      quality: item.quality || '4K Ultra HD',
+      quality: item.quality || defaultQuality,
     };
   }
 
@@ -103,7 +110,7 @@ function resolveVideoMeta(item) {
       rating: '8.8',
       duration: item.duration || 'Live Stream',
       overview: item.overview || `Live stream of ${item.title || item.searchQuery} in master definition.`,
-      quality: item.quality || 'Auto',
+      quality: item.quality || defaultQuality,
     };
   }
 
@@ -114,7 +121,7 @@ function resolveVideoMeta(item) {
         ...data,
         title: item.title || data.title,
         overview: item.overview,
-        quality: item.quality || '4K Ultra HD',
+        quality: item.quality || defaultQuality,
       };
     }
   }
@@ -127,7 +134,7 @@ function resolveVideoMeta(item) {
     rating: item.rating || '8.0',
     duration: item.duration || '2h 15m',
     overview: item.overview,
-    quality: item.quality || '4K Ultra HD',
+    quality: item.quality || defaultQuality,
   };
 }
 
@@ -154,12 +161,13 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const [isPortrait, setIsPortrait] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
+  const lastTouchTimeRef = useRef(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(210);
   const [volume, setVolume] = useState(100);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [settingsView, setSettingsView] = useState('main');
   const [ambientMode, setAmbientMode] = useState(true);
@@ -171,6 +179,8 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const [currentQualityLabel, setCurrentQualityLabel] = useState('1080p (HD)');
   const [selectedQualityCode, setSelectedQualityCode] = useState('auto');
   const [availableQualityLevels, setAvailableQualityLevels] = useState([]);
+  const [detectedMaxQuality, setDetectedMaxQuality] = useState(null);
+  const [hasMaxRes, setHasMaxRes] = useState(true);
   const [ccActive, setCcActive] = useState(false);
   const [ccToast, setCcToast] = useState('');
   const ccToastTimeoutRef = useRef(null);
@@ -268,10 +278,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     setIsAutoQuality(true);
     setSelectedQualityCode('auto');
     setAvailableQualityLevels([]);
-    const defaultLabel = (initialMeta?.quality && (initialMeta.quality.includes('4K') || initialMeta.quality.includes('UHD')))
-      ? '1080p (HD)'
-      : '720p';
-    setCurrentQualityLabel(defaultLabel);
+    setDetectedMaxQuality(null);
+    setHasMaxRes(true);
+    setCurrentQualityLabel('1080p (HD)');
 
     const lookupParam = movie?.imdbId || movie?.id || movie?.title;
     if (lookupParam && !movie?.trailerYoutubeId && !movie?.searchQuery) {
@@ -291,6 +300,51 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     }
   }, [movie]);
 
+  // Probe YouTube thumbnail to verify if maxres (HD) exists
+  useEffect(() => {
+    const rawId = resolvedMovie?.trailerYoutubeId || resolvedMovie?.id;
+    const cleanId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId);
+    if (!cleanId || cleanId.length !== 11) return;
+
+    if (typeof window !== 'undefined') {
+      const probe = new Image();
+      probe.src = `https://img.youtube.com/vi/${cleanId}/maxresdefault.jpg`;
+      probe.onload = () => {
+        if (probe.naturalWidth > 120 && probe.naturalHeight > 90) {
+          setHasMaxRes(true);
+        } else {
+          setHasMaxRes(false);
+        }
+      };
+      probe.onerror = () => {
+        setHasMaxRes(false);
+      };
+    }
+  }, [resolvedMovie]);
+
+  const is4KAvailable = useMemo(() => {
+    if (availableQualityLevels.length > 0) {
+      return availableQualityLevels.some((q) => q === 'highres' || q === 'hd2160');
+    }
+    if (detectedMaxQuality === '2160p') return true;
+
+    const title = (resolvedMovie?.title || '').toLowerCase();
+    const overview = (resolvedMovie?.overview || '').toLowerCase();
+    const search = (resolvedMovie?.searchQuery || '').toLowerCase();
+    const combined = `${title} ${overview} ${search}`;
+    return /\b(4k|2160p|uhd)\b/.test(combined);
+  }, [availableQualityLevels, detectedMaxQuality, resolvedMovie]);
+
+  const is1440pAvailable = useMemo(() => {
+    if (is4KAvailable) return true;
+    if (availableQualityLevels.length > 0) {
+      return availableQualityLevels.some((q) => q === 'hd1440');
+    }
+    if (detectedMaxQuality === '1440p') return true;
+    const title = (resolvedMovie?.title || '').toLowerCase();
+    return /\b(1440p|2k)\b/.test(title);
+  }, [is4KAvailable, availableQualityLevels, detectedMaxQuality, resolvedMovie]);
+
   const displayedQualityOptions = useMemo(() => {
     if (availableQualityLevels.length > 0) {
       const supported = YOUTUBE_QUALITIES.filter((item) =>
@@ -298,11 +352,34 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
       );
       if (supported.length > 0) return supported;
     }
-    const is4K = !!(resolvedMovie?.quality && (resolvedMovie.quality.includes('4K') || resolvedMovie.quality.includes('UHD')));
-    return is4K
-      ? YOUTUBE_QUALITIES
-      : YOUTUBE_QUALITIES.filter((q) => q.ytCode !== 'highres' && q.ytCode !== 'hd1440');
-  }, [availableQualityLevels, resolvedMovie?.quality]);
+
+    if (is4KAvailable) {
+      return YOUTUBE_QUALITIES;
+    }
+
+    if (is1440pAvailable) {
+      return YOUTUBE_QUALITIES.filter((q) => q.ytCode !== 'highres');
+    }
+
+    if (!hasMaxRes) {
+      return YOUTUBE_QUALITIES.filter(
+        (q) => q.ytCode !== 'highres' && q.ytCode !== 'hd1440' && q.ytCode !== 'hd1080' && q.ytCode !== 'hd720'
+      );
+    }
+
+    return YOUTUBE_QUALITIES.filter((q) => q.ytCode !== 'highres' && q.ytCode !== 'hd1440');
+  }, [availableQualityLevels, is4KAvailable, is1440pAvailable, hasMaxRes]);
+
+  const highestAvailableOption = displayedQualityOptions[0] || YOUTUBE_QUALITIES[2];
+  const autoQualityLabel = highestAvailableOption.label;
+
+  useEffect(() => {
+    if (isAutoQuality && displayedQualityOptions.length > 0) {
+      const highestCode = displayedQualityOptions[0].ytCode;
+      sendCommand('setPlaybackQuality', [highestCode]);
+      sendCommand('setPlaybackQualityRange', [highestCode, highestCode]);
+    }
+  }, [isAutoQuality, displayedQualityOptions, sendCommand]);
 
   const handleUserActivity = () => {
     setShowControls(true);
@@ -317,6 +394,16 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     if (e && e.stopPropagation) {
       e.stopPropagation();
     }
+
+    const now = Date.now();
+    if (e?.type === 'touchend') {
+      lastTouchTimeRef.current = now;
+    } else if (e?.type === 'click') {
+      if (now - lastTouchTimeRef.current < 450) {
+        return;
+      }
+    }
+
     if (!showControls) {
       setShowControls(true);
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -437,8 +524,9 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     if (qCode === 'auto') {
       setIsAutoQuality(true);
       setSelectedQualityCode('auto');
-      sendCommand('setPlaybackQuality', ['default']);
-      sendCommand('setPlaybackQualityRange', ['default', 'default']);
+      const highestCode = displayedQualityOptions[0]?.ytCode || 'hd1080';
+      sendCommand('setPlaybackQuality', [highestCode]);
+      sendCommand('setPlaybackQualityRange', [highestCode, highestCode]);
     } else {
       setIsAutoQuality(false);
       setSelectedQualityCode(qCode);
@@ -515,7 +603,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     const handleMessage = (event) => {
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data && data.event === 'infoDelivery' && data.info) {
+        if (data && (data.event === 'infoDelivery' || data.event === 'initialDelivery') && data.info) {
           if (typeof data.info.currentTime === 'number') {
             setCurrentTime(data.info.currentTime);
           }
@@ -529,6 +617,12 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
               startNextVideoCountdown();
             } else if (st === 1) {
               setIsPlaying(true);
+              if (iframeRef.current && iframeRef.current.contentWindow) {
+                try {
+                  iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getAvailableQualityLevels', args: [] }), '*');
+                  iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getPlaybackQuality', args: [] }), '*');
+                } catch (e) {}
+              }
             } else if (st === 2) {
               setIsPlaying(false);
             }
@@ -537,7 +631,15 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
             setIsMuted(data.info.muted);
           }
           if (typeof data.info.playbackQuality === 'string' && data.info.playbackQuality !== 'unknown') {
-            const mapped = CODE_TO_LABEL_MAP[data.info.playbackQuality];
+            const qCode = data.info.playbackQuality;
+            if (qCode === 'highres' || qCode === 'hd2160') {
+              setDetectedMaxQuality('2160p');
+            } else if (qCode === 'hd1440') {
+              setDetectedMaxQuality((prev) => (prev === '2160p' ? '2160p' : '1440p'));
+            } else if (qCode === 'hd1080') {
+              setDetectedMaxQuality((prev) => (prev === '2160p' || prev === '1440p' ? prev : '1080p'));
+            }
+            const mapped = CODE_TO_LABEL_MAP[qCode];
             if (mapped) {
               setCurrentQualityLabel(mapped);
             }
@@ -579,6 +681,10 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
       if (iframeRef.current && iframeRef.current.contentWindow) {
         try {
           iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+            '*'
+          );
         } catch (e) {}
       }
     }, 1500);
@@ -766,7 +872,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
 
   const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || '8FkLRUJj-o0';
   const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || '8FkLRUJj-o0';
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1`;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -807,22 +913,6 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
         </div>
       </div>
 
-      {/* Tap / Click to Unmute Banner */}
-      {isMuted && (
-        <button
-          type="button"
-          className="player-unmute-banner"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleMute();
-          }}
-          title={language === 'hi' ? 'आवाज़ शुरू करें' : 'Click to Unmute Sound'}
-        >
-          <i className="fa-solid fa-volume-xmark"></i>
-          <span>{language === 'hi' ? 'आवाज़ शुरू करने के लिए क्लिक करें' : 'Click to Unmute Sound'}</span>
-        </button>
-      )}
-
       <div className="player-youtube-wrap">
         <iframe
           ref={iframeRef}
@@ -839,10 +929,31 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
             if (iframeRef.current && iframeRef.current.contentWindow) {
               try {
                 iframeRef.current.contentWindow.postMessage('{"event":"listening"}', '*');
+                iframeRef.current.contentWindow.postMessage(
+                  JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+                  '*'
+                );
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getAvailableQualityLevels', args: [] }), '*');
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getPlaybackQuality', args: [] }), '*');
               } catch (e) {}
             }
           }}
         ></iframe>
+
+        {/* Screen Tap & Touch Layer to Show/Hide Controls */}
+        <div
+          className="player-touch-interceptor"
+          onClick={handleToggleControls}
+          onTouchEnd={handleToggleControls}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            toggleFullscreen();
+          }}
+          title="Tap screen to show/hide controls"
+          aria-label="Tap screen to show/hide controls"
+        />
       </div>
 
       {/* Center Big Play / Pause Button */}
@@ -1138,7 +1249,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                         </div>
                         <div className="yt-row-right">
                           <span className="yt-item-badge">
-                            {isAutoQuality ? `Auto (${currentQualityLabel})` : currentQualityLabel}
+                            {isAutoQuality ? `Auto (${autoQualityLabel})` : currentQualityLabel}
                           </span>
                           <i className="fa-solid fa-chevron-right yt-arrow"></i>
                         </div>
@@ -1154,7 +1265,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                       </div>
                       <div className="yt-submenu-divider"></div>
                       <div className="yt-submenu-scroll custom-scrollbar">
-                        {/* Auto Option */}
+                        {/* Auto Option - Selected by Default with Highest Quality */}
                         <div
                           className={`yt-submenu-row ${isAutoQuality ? 'active' : ''}`}
                           onClick={() => handleQualityChange('auto')}
@@ -1163,7 +1274,7 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                             {isAutoQuality && <i className="fa-solid fa-check"></i>}
                           </span>
                           <span className="yt-submenu-label">
-                            Auto {currentQualityLabel ? `(${currentQualityLabel})` : ''}
+                            Auto ({autoQualityLabel})
                           </span>
                         </div>
 

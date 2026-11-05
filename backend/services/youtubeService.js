@@ -61,7 +61,11 @@ async function searchYouTube(query, maxResults = 8) {
         year: String(publishYear),
         poster: poster,
         backdrop: poster,
-        quality: /8k/i.test(title) ? '8K Ultra HD' : '4K Ultra HD',
+        quality: /8k/i.test(title)
+          ? '8K Ultra HD'
+          : /\b(4k|2160p|uhd)\b/i.test(title)
+          ? '4K Ultra HD'
+          : '1080p Full HD',
         type: isSong ? 'song' : 'movie',
         overview: decodeHtmlEntities(snippet.description || `Official YouTube stream for ${title}`),
         duration: isSong ? 'Full Track' : 'Full Stream',
