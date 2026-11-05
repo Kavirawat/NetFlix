@@ -192,6 +192,19 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
   const [nextUpVideo, setNextUpVideo] = useState(null);
   const countdownTimerRef = useRef(null);
 
+  const sendCommand = useCallback((func, args = []) => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      try {
+        const payload = JSON.stringify({
+          event: 'command',
+          func: func,
+          args: Array.isArray(args) ? args : [args],
+        });
+        iframeRef.current.contentWindow.postMessage(payload, '*');
+      } catch (e) {}
+    }
+  }, []);
+
   const triggerCenterFlash = (type) => {
     setCenterFlash(type);
     if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
@@ -207,17 +220,28 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     }
     setNextCountdown(null);
     setNextUpVideo(null);
-    const next = targetVideo || getNextVideo(resolvedMovie);
+    const next = targetVideo || nextUpVideo || getNextVideo(resolvedMovie);
     if (!next) return;
+
+    const resolvedNext = resolveVideoMeta(next);
+    const rawNextId = resolvedNext.trailerYoutubeId || resolvedNext.id || '8FkLRUJj-o0';
+    const cleanNextId = (typeof rawNextId === 'string' ? rawNextId.replace(/^yt-/, '') : rawNextId) || '8FkLRUJj-o0';
+
+    setResolvedMovie(resolvedNext);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(true);
+
+    // Command existing iframe immediately
+    sendCommand('loadVideoById', [cleanNextId, 0]);
+    sendCommand('playVideo');
+    sendCommand('unMute');
+    sendCommand('setVolume', [volume || 100]);
 
     if (onPlayMovie) {
       onPlayMovie(next);
-    } else {
-      setResolvedMovie(resolveVideoMeta(next));
-      setCurrentTime(0);
-      setIsPlaying(true);
     }
-  }, [resolvedMovie, onPlayMovie]);
+  }, [resolvedMovie, nextUpVideo, onPlayMovie, sendCommand, volume]);
 
   const cancelNextCountdown = () => {
     if (countdownTimerRef.current) {
@@ -258,22 +282,18 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
     }, 2800);
   };
 
-  const sendCommand = useCallback((func, args = []) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      try {
-        const payload = JSON.stringify({
-          event: 'command',
-          func: func,
-          args: Array.isArray(args) ? args : [args],
-        });
-        iframeRef.current.contentWindow.postMessage(payload, '*');
-      } catch (e) {}
-    }
-  }, []);
-
   useEffect(() => {
     const initialMeta = resolveVideoMeta(movie);
     setResolvedMovie(initialMeta);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(true);
+    setNextCountdown(null);
+    setNextUpVideo(null);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
 
     setIsAutoQuality(true);
     setSelectedQualityCode('auto');
@@ -463,6 +483,10 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
       setIsPlaying(false);
       triggerCenterFlash('pause');
     } else {
+      if (duration > 5 && currentTime >= duration - 1) {
+        sendCommand('seekTo', [0, true]);
+        setCurrentTime(0);
+      }
       sendCommand('playVideo');
       if (isMuted) {
         sendCommand('unMute');
@@ -872,7 +896,8 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
 
   const rawId = resolvedMovie.trailerYoutubeId || resolvedMovie.id || '8FkLRUJj-o0';
   const videoId = (typeof rawId === 'string' ? rawId.replace(/^yt-/, '') : rawId) || '8FkLRUJj-o0';
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1`;
+  const originParam = typeof window !== 'undefined' && window.location.origin ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1${originParam}`;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -929,7 +954,8 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
                   '*'
                 );
                 iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [volume || 100] }), '*');
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                 iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getAvailableQualityLevels', args: [] }), '*');
                 iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getPlaybackQuality', args: [] }), '*');
               } catch (e) {}
@@ -995,7 +1021,12 @@ export default function NetflixVideoPlayer({ movie, onClose, onPlayMovie, langua
             </button>
           </div>
 
-          <div className="next-up-body">
+          <div
+            className="next-up-body"
+            onClick={() => playNextVideo(nextUpVideo)}
+            style={{ cursor: 'pointer' }}
+            title={language === 'hi' ? 'अगला वीडियो अभी चलाएं' : 'Play Next Video Now'}
+          >
             <img
               src={nextUpVideo.poster || (nextUpVideo.trailerYoutubeId ? `https://img.youtube.com/vi/${nextUpVideo.trailerYoutubeId}/hqdefault.jpg` : '/logo1.jpg')}
               alt={nextUpVideo.title}
